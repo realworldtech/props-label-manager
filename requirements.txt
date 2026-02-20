@@ -1,0 +1,17 @@
+Django==5.2.11
+django-unfold==0.78.1
+fpdf2==2.8.3
+python-barcode[images]==0.16.1
+qrcode[pil]==8.2
+websockets==15.0.1
+Pillow==12.1.1
+whitenoise==6.11.0
+gunicorn==25.0.2
+black==26.1.0
+flake8==7.3.0
+isort==7.0.0
+pytest==8.3.5
+pytest-django==4.11.1
+pytest-asyncio==0.25.3
+factory-boy==3.3.3
+coverage==7.13.3
