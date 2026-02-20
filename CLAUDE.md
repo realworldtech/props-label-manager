@@ -41,11 +41,8 @@ python manage.py run_print_client --client-name 'My Client'
 python manage.py makemigrations
 python manage.py migrate
 
-# Docker (dev)
-docker compose --profile dev up
-
-# Docker (prod)
-docker compose --profile prod up
+# Docker
+docker compose up
 ```
 
 ## Architecture

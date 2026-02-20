@@ -65,14 +65,10 @@ This starts WebSocket connections to all active PROPS connections and listens fo
 cp .env.example .env
 # Edit .env
 
-# Development (hot reload)
-docker compose --profile dev up
-
-# Production
-docker compose --profile prod up
+docker compose up
 ```
 
-The `print-client` service runs automatically alongside the web server.
+This starts both the admin web server and the print client.
 
 ## Configuration
 
