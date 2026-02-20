@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from printing.services.printer import PrinterService, PrintError
+
+from printing.services.printer import PrintError, PrinterService
 
 
 class TestPrinterService:

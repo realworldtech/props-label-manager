@@ -3,9 +3,9 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from printing.models import PropsConnection, Printer, PrintJob, LabelTemplate
-from printing.services.ws_client import PropsWebSocketClient
+from printing.models import LabelTemplate, Printer, PrintJob, PropsConnection
 from printing.services.job_processor import process_print_job
+from printing.services.ws_client import PropsWebSocketClient
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,7 @@ class Command(BaseCommand):
             await asyncio.gather(*tasks)
 
     async def _on_token_received(self, connection_id: int, token: str):
-        conn = await asyncio.to_thread(
-            PropsConnection.objects.get, pk=connection_id
-        )
+        conn = await asyncio.to_thread(PropsConnection.objects.get, pk=connection_id)
         conn.pairing_token = token
         await asyncio.to_thread(conn.save, update_fields=["pairing_token"])
         logger.info("Stored pairing token for connection %s", connection_id)

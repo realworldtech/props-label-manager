@@ -1,19 +1,26 @@
 import json
+
 import pytest
+
 from printing.services.protocol import (
+    MessageType,
+    ProtocolError,
     build_authenticate_message,
     build_pairing_request_message,
     build_print_status_message,
     parse_server_message,
-    MessageType,
-    ProtocolError,
 )
 
 
 class TestBuildMessages:
     def test_build_authenticate(self):
         printers = [
-            {"id": 1, "name": "Zebra", "status": "online", "templates": ["square-62x62"]}
+            {
+                "id": 1,
+                "name": "Zebra",
+                "status": "online",
+                "templates": ["square-62x62"],
+            }
         ]
         msg = build_authenticate_message("secret-token", "Office Printer", printers)
         parsed = json.loads(msg)
@@ -45,37 +52,45 @@ class TestBuildMessages:
 
 class TestParseMessages:
     def test_parse_auth_result_success(self):
-        raw = json.dumps({"type": "auth_result", "success": True, "server_name": "BeaMS"})
+        raw = json.dumps(
+            {"type": "auth_result", "success": True, "server_name": "BeaMS"}
+        )
         msg = parse_server_message(raw)
         assert msg.type == MessageType.AUTH_RESULT
         assert msg.data["success"] is True
         assert msg.data["server_name"] == "BeaMS"
 
     def test_parse_auth_result_failure(self):
-        raw = json.dumps({"type": "auth_result", "success": False, "server_name": "BeaMS"})
+        raw = json.dumps(
+            {"type": "auth_result", "success": False, "server_name": "BeaMS"}
+        )
         msg = parse_server_message(raw)
         assert msg.data["success"] is False
 
     def test_parse_pairing_approved(self):
-        raw = json.dumps({
-            "type": "pairing_approved",
-            "token": "new-token-xyz",
-            "server_name": "BeaMS Production",
-        })
+        raw = json.dumps(
+            {
+                "type": "pairing_approved",
+                "token": "new-token-xyz",
+                "server_name": "BeaMS Production",
+            }
+        )
         msg = parse_server_message(raw)
         assert msg.type == MessageType.PAIRING_APPROVED
         assert msg.data["token"] == "new-token-xyz"
 
     def test_parse_print_request(self):
-        raw = json.dumps({
-            "type": "print",
-            "job_id": "uuid-123",
-            "printer_id": "1",
-            "barcode": "BEAMS-A1B2C3D4",
-            "asset_name": "Wireless Mic",
-            "category_name": "Audio",
-            "quantity": 2,
-        })
+        raw = json.dumps(
+            {
+                "type": "print",
+                "job_id": "uuid-123",
+                "printer_id": "1",
+                "barcode": "BEAMS-A1B2C3D4",
+                "asset_name": "Wireless Mic",
+                "category_name": "Audio",
+                "quantity": 2,
+            }
+        )
         msg = parse_server_message(raw)
         assert msg.type == MessageType.PRINT
         assert msg.data["barcode"] == "BEAMS-A1B2C3D4"

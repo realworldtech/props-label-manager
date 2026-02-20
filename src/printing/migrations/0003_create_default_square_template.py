@@ -19,17 +19,26 @@ def create_default_template(apps, schema_editor):
     LabelElement.objects.create(
         template=template,
         element_type="asset_name",
-        x_mm=2, y_mm=1, width_mm=58, height_mm=5,
-        font_name="helvetica", font_size_pt=7,
-        font_bold=True, text_align="center",
-        max_chars=20, sort_order=1,
+        x_mm=2,
+        y_mm=1,
+        width_mm=58,
+        height_mm=5,
+        font_name="helvetica",
+        font_size_pt=7,
+        font_bold=True,
+        text_align="center",
+        max_chars=20,
+        sort_order=1,
     )
 
     # QR code centred in middle
     LabelElement.objects.create(
         template=template,
         element_type="qr_code",
-        x_mm=6, y_mm=7, width_mm=50, height_mm=50,
+        x_mm=6,
+        y_mm=7,
+        width_mm=50,
+        height_mm=50,
         sort_order=2,
     )
 
@@ -37,9 +46,14 @@ def create_default_template(apps, schema_editor):
     LabelElement.objects.create(
         template=template,
         element_type="barcode_text",
-        x_mm=2, y_mm=57, width_mm=58, height_mm=4,
-        font_name="courier", font_size_pt=5,
-        text_align="center", sort_order=3,
+        x_mm=2,
+        y_mm=57,
+        width_mm=58,
+        height_mm=4,
+        font_name="courier",
+        font_size_pt=5,
+        text_align="center",
+        sort_order=3,
     )
 
 

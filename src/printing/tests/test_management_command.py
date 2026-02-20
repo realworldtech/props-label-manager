@@ -1,7 +1,9 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from django.core.management import call_command
 from io import StringIO
+from unittest.mock import MagicMock, patch
+
+import pytest
+from django.core.management import call_command
+
 from printing.models import PropsConnection
 
 
@@ -9,7 +11,9 @@ from printing.models import PropsConnection
 class TestRunPrintClientCommand:
     def test_no_active_connections(self):
         out = StringIO()
-        with patch("printing.management.commands.run_print_client.asyncio") as mock_asyncio:
+        with patch(
+            "printing.management.commands.run_print_client.asyncio"
+        ) as mock_asyncio:
             mock_asyncio.run = MagicMock()
             call_command("run_print_client", stdout=out)
             output = out.getvalue()
@@ -23,7 +27,9 @@ class TestRunPrintClientCommand:
             is_active=True,
         )
         out = StringIO()
-        with patch("printing.management.commands.run_print_client.asyncio") as mock_asyncio:
+        with patch(
+            "printing.management.commands.run_print_client.asyncio"
+        ) as mock_asyncio:
             mock_asyncio.run = MagicMock()
             call_command("run_print_client", stdout=out)
             output = out.getvalue()

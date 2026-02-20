@@ -1,15 +1,17 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from printing.models import (
-    LabelTemplate,
-    LabelElement,
     ElementType,
     FontChoices,
-    TextAlign,
+    JobStatus,
+    LabelElement,
+    LabelTemplate,
     Printer,
     PrintJob,
     PropsConnection,
-    JobStatus,
+    TextAlign,
 )
 from printing.services.job_processor import process_print_job
 

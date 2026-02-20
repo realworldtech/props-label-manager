@@ -18,8 +18,6 @@ class PrinterService:
             sock.connect((self.ip_address, self.port))
             sock.sendall(data)
         except (ConnectionRefusedError, TimeoutError, OSError) as e:
-            raise PrintError(
-                f"Failed to connect to {self.ip_address}:{self.port}: {e}"
-            )
+            raise PrintError(f"Failed to connect to {self.ip_address}:{self.port}: {e}")
         finally:
             sock.close()

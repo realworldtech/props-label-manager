@@ -1,8 +1,10 @@
 import logging
+
 from django.utils import timezone
-from printing.models import PrintJob, JobStatus
+
+from printing.models import JobStatus, PrintJob
 from printing.services.label_renderer import LabelRenderer
-from printing.services.printer import PrinterService, PrintError
+from printing.services.printer import PrintError, PrinterService
 
 logger = logging.getLogger(__name__)
 

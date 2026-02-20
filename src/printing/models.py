@@ -44,9 +44,9 @@ class LabelTemplate(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            LabelTemplate.objects.filter(is_default=True).exclude(
-                pk=self.pk
-            ).update(is_default=False)
+            LabelTemplate.objects.filter(is_default=True).exclude(pk=self.pk).update(
+                is_default=False
+            )
         super().save(*args, **kwargs)
 
 

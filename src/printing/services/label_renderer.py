@@ -75,9 +75,7 @@ class LabelRenderer:
         elif element.element_type == ElementType.LOGO:
             self._render_logo(c, x, rl_y, w, h)
         elif element.element_type == ElementType.STATIC_TEXT:
-            self._render_text(
-                c, element, element.static_content or "", x, rl_y, w, h
-            )
+            self._render_text(c, element, element.static_content or "", x, rl_y, w, h)
 
     def _render_barcode(self, c, text, x, y, w, h):
         code128 = barcode.get("code128", text, writer=ImageWriter())

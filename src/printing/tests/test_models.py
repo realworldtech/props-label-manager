@@ -1,8 +1,14 @@
 import pytest
+
 from printing.models import (
-    LabelTemplate, LabelElement, FontChoices, ElementType, TextAlign,
-    Printer, PropsConnection, PrintJob,
-    ConnectionStatus, PrinterStatus, JobStatus,
+    ElementType,
+    FontChoices,
+    LabelElement,
+    LabelTemplate,
+    Printer,
+    PrintJob,
+    PropsConnection,
+    TextAlign,
 )
 
 
@@ -36,9 +42,7 @@ class TestLabelTemplate:
 @pytest.mark.django_db
 class TestLabelElement:
     def test_create_element(self):
-        template = LabelTemplate.objects.create(
-            name="Test", width_mm=62, height_mm=62
-        )
+        template = LabelTemplate.objects.create(name="Test", width_mm=62, height_mm=62)
         element = LabelElement.objects.create(
             template=template,
             element_type=ElementType.BARCODE_128,
@@ -53,9 +57,7 @@ class TestLabelElement:
         assert element.font_bold is False
 
     def test_text_element_with_font(self):
-        template = LabelTemplate.objects.create(
-            name="Test", width_mm=62, height_mm=62
-        )
+        template = LabelTemplate.objects.create(name="Test", width_mm=62, height_mm=62)
         element = LabelElement.objects.create(
             template=template,
             element_type=ElementType.ASSET_NAME,
@@ -74,16 +76,24 @@ class TestLabelElement:
         assert element.text_align == "center"
 
     def test_element_ordering(self):
-        template = LabelTemplate.objects.create(
-            name="Test", width_mm=62, height_mm=62
-        )
+        template = LabelTemplate.objects.create(name="Test", width_mm=62, height_mm=62)
         e2 = LabelElement.objects.create(
-            template=template, element_type=ElementType.QR_CODE,
-            x_mm=0, y_mm=0, width_mm=10, height_mm=10, sort_order=2
+            template=template,
+            element_type=ElementType.QR_CODE,
+            x_mm=0,
+            y_mm=0,
+            width_mm=10,
+            height_mm=10,
+            sort_order=2,
         )
         e1 = LabelElement.objects.create(
-            template=template, element_type=ElementType.BARCODE_128,
-            x_mm=0, y_mm=0, width_mm=10, height_mm=10, sort_order=1
+            template=template,
+            element_type=ElementType.BARCODE_128,
+            x_mm=0,
+            y_mm=0,
+            width_mm=10,
+            height_mm=10,
+            sort_order=1,
         )
         elements = list(template.elements.all())
         assert elements[0] == e1
@@ -107,7 +117,8 @@ class TestPrinter:
             name="Square", width_mm=62, height_mm=62
         )
         printer = Printer.objects.create(
-            name="Office", ip_address="10.0.0.50",
+            name="Office",
+            ip_address="10.0.0.50",
             default_template=template,
         )
         assert printer.default_template == template
@@ -148,9 +159,7 @@ class TestPrintJob:
         template = LabelTemplate.objects.create(
             name="Square", width_mm=62, height_mm=62
         )
-        printer = Printer.objects.create(
-            name="Zebra", ip_address="192.168.1.100"
-        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
         job = PrintJob.objects.create(
             printer=printer,
             template=template,
@@ -168,9 +177,7 @@ class TestPrintJob:
         template = LabelTemplate.objects.create(
             name="Square", width_mm=62, height_mm=62
         )
-        printer = Printer.objects.create(
-            name="Zebra", ip_address="192.168.1.100"
-        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
         conn = PropsConnection.objects.create(
             name="BeaMS", server_url="wss://beams.example.com/ws/print-service/"
         )
