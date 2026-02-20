@@ -9,3 +9,4 @@ profile = "black"
 DJANGO_SETTINGS_MODULE = "printclient.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 pythonpath = ["src"]
+asyncio_mode = "auto"
