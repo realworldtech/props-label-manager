@@ -15,6 +15,7 @@ venv/
 *.sqlite3
 src/staticfiles/
 src/media/
+src/data/
 
 # IDE
 .idea/

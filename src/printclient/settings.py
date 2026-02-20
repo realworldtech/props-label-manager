@@ -10,11 +10,13 @@ from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-dev-key-change-in-production"
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY", "django-insecure-dev-key-change-in-production"
+)
 
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
 INSTALLED_APPS = [
     "unfold",
@@ -59,10 +61,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "printclient.wsgi.application"
 
+DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATA_DIR / "db.sqlite3",
     }
 }
 
@@ -82,7 +87,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = os.environ.get("TIME_ZONE", "Australia/Sydney")
 USE_I18N = True
 USE_TZ = True
 
