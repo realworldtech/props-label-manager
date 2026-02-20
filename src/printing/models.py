@@ -79,3 +79,99 @@ class LabelElement(models.Model):
 
     def __str__(self):
         return f"{self.get_element_type_display()} at ({self.x_mm}, {self.y_mm})"
+
+
+class ConnectionStatus(models.TextChoices):
+    DISCONNECTED = "disconnected", "Disconnected"
+    CONNECTING = "connecting", "Connecting"
+    CONNECTED = "connected", "Connected"
+    PAIRING = "pairing", "Pairing"
+    ERROR = "error", "Error"
+
+
+class PrinterStatus(models.TextChoices):
+    UNKNOWN = "unknown", "Unknown"
+    ONLINE = "online", "Online"
+    OFFLINE = "offline", "Offline"
+    ERROR = "error", "Error"
+
+
+class JobStatus(models.TextChoices):
+    QUEUED = "queued", "Queued"
+    RENDERING = "rendering", "Rendering"
+    SENDING = "sending", "Sending"
+    COMPLETED = "completed", "Completed"
+    FAILED = "failed", "Failed"
+
+
+class PropsConnection(models.Model):
+    name = models.CharField(max_length=100)
+    server_url = models.URLField()
+    pairing_token = models.CharField(max_length=255, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    status = models.CharField(
+        max_length=20,
+        choices=ConnectionStatus.choices,
+        default=ConnectionStatus.DISCONNECTED,
+    )
+    last_connected_at = models.DateTimeField(blank=True, null=True)
+    last_error = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_paired(self):
+        return bool(self.pairing_token)
+
+
+class Printer(models.Model):
+    name = models.CharField(max_length=100)
+    ip_address = models.GenericIPAddressField()
+    port = models.IntegerField(default=9100)
+    is_active = models.BooleanField(default=True)
+    default_template = models.ForeignKey(
+        LabelTemplate, on_delete=models.SET_NULL, blank=True, null=True
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=PrinterStatus.choices,
+        default=PrinterStatus.UNKNOWN,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.ip_address}:{self.port})"
+
+
+class PrintJob(models.Model):
+    props_connection = models.ForeignKey(
+        PropsConnection, on_delete=models.SET_NULL, blank=True, null=True
+    )
+    printer = models.ForeignKey(Printer, on_delete=models.CASCADE)
+    template = models.ForeignKey(LabelTemplate, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=20, choices=JobStatus.choices, default=JobStatus.QUEUED
+    )
+    barcode = models.CharField(max_length=100)
+    asset_name = models.CharField(max_length=200)
+    category_name = models.CharField(max_length=200)
+    quantity = models.IntegerField(default=1)
+    error_message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.barcode} - {self.status}"

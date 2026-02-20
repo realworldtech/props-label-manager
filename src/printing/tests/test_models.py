@@ -1,5 +1,9 @@
 import pytest
-from printing.models import LabelTemplate, LabelElement, FontChoices, ElementType, TextAlign
+from printing.models import (
+    LabelTemplate, LabelElement, FontChoices, ElementType, TextAlign,
+    Printer, PropsConnection, PrintJob,
+    ConnectionStatus, PrinterStatus, JobStatus,
+)
 
 
 @pytest.mark.django_db
@@ -84,3 +88,100 @@ class TestLabelElement:
         elements = list(template.elements.all())
         assert elements[0] == e1
         assert elements[1] == e2
+
+
+@pytest.mark.django_db
+class TestPrinter:
+    def test_create_printer(self):
+        printer = Printer.objects.create(
+            name="Warehouse Zebra",
+            ip_address="192.168.1.100",
+        )
+        assert printer.port == 9100
+        assert printer.is_active is True
+        assert printer.status == "unknown"
+        assert str(printer) == "Warehouse Zebra (192.168.1.100:9100)"
+
+    def test_printer_with_default_template(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(
+            name="Office", ip_address="10.0.0.50",
+            default_template=template,
+        )
+        assert printer.default_template == template
+
+
+@pytest.mark.django_db
+class TestPropsConnection:
+    def test_create_connection(self):
+        conn = PropsConnection.objects.create(
+            name="BeaMS Production",
+            server_url="wss://beams.example.com/ws/print-service/",
+        )
+        assert conn.is_active is True
+        assert conn.status == "disconnected"
+        assert conn.pairing_token is None
+        assert str(conn) == "BeaMS Production"
+
+    def test_connection_with_token(self):
+        conn = PropsConnection.objects.create(
+            name="BeaMS",
+            server_url="wss://beams.example.com/ws/print-service/",
+            pairing_token="secret-token-123",
+        )
+        assert conn.pairing_token == "secret-token-123"
+        assert conn.is_paired is True
+
+    def test_unpaired_connection(self):
+        conn = PropsConnection.objects.create(
+            name="BeaMS",
+            server_url="wss://beams.example.com/ws/print-service/",
+        )
+        assert conn.is_paired is False
+
+
+@pytest.mark.django_db
+class TestPrintJob:
+    def test_create_print_job(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(
+            name="Zebra", ip_address="192.168.1.100"
+        )
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-A1B2C3D4",
+            asset_name="Wireless Mic",
+            category_name="Audio",
+        )
+        assert job.status == "queued"
+        assert job.quantity == 1
+        assert job.props_connection is None
+        assert job.completed_at is None
+        assert str(job) == "BEAMS-A1B2C3D4 - queued"
+
+    def test_print_job_with_connection(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(
+            name="Zebra", ip_address="192.168.1.100"
+        )
+        conn = PropsConnection.objects.create(
+            name="BeaMS", server_url="wss://beams.example.com/ws/print-service/"
+        )
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            props_connection=conn,
+            barcode="BEAMS-DEADBEEF",
+            asset_name="Camera",
+            category_name="Video",
+            quantity=3,
+        )
+        assert job.props_connection == conn
+        assert job.quantity == 3
