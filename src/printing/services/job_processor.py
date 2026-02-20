@@ -19,6 +19,7 @@ def process_print_job(job: PrintJob) -> None:
             barcode_text=job.barcode,
             asset_name=job.asset_name,
             category_name=job.category_name,
+            qr_content=job.qr_content or "",
             quantity=job.quantity,
         )
     except Exception as e:

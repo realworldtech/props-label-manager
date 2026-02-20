@@ -77,6 +77,7 @@ class TestFullPrintFlow:
             barcode="BEAMS-TESTTEST",
             asset_name="Test Microphone",
             category_name="Audio Equipment",
+            qr_content="https://beams.example.com/assets/TESTTEST",
             quantity=2,
         )
 

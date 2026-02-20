@@ -165,6 +165,11 @@ class PrintJob(models.Model):
     barcode = models.CharField(max_length=100)
     asset_name = models.CharField(max_length=200)
     category_name = models.CharField(max_length=200)
+    qr_content = models.URLField(
+        blank=True,
+        null=True,
+        help_text="URL to encode in QR code. If blank, uses the barcode string.",
+    )
     quantity = models.IntegerField(default=1)
     error_message = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -5,7 +5,6 @@ Django settings for the PROPS Print Client project.
 import os
 from pathlib import Path
 
-from django.templatetags.static import static
 from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve().parent.parent

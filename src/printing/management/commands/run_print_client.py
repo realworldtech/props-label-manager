@@ -97,6 +97,7 @@ class Command(BaseCommand):
                 barcode=data["barcode"],
                 asset_name=data["asset_name"],
                 category_name=data["category_name"],
+                qr_content=data.get("qr_content", ""),
                 quantity=data.get("quantity", 1),
             )
             process_print_job(job)

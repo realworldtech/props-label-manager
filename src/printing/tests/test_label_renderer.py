@@ -87,6 +87,30 @@ class TestLabelRenderer:
         )
         assert isinstance(pdf_bytes, bytes)
 
+    def test_render_with_qr_content_url(self):
+        template = self._create_template_with_elements()
+        renderer = LabelRenderer(template)
+        pdf_bytes = renderer.render(
+            barcode_text="BEAMS-A1B2C3D4",
+            asset_name="Wireless Microphone",
+            category_name="Audio Equipment",
+            qr_content="https://beams.example.com/assets/A1B2C3D4",
+        )
+        assert isinstance(pdf_bytes, bytes)
+        assert pdf_bytes[:5] == b"%PDF-"
+
+    def test_render_qr_falls_back_to_barcode(self):
+        template = self._create_template_with_elements()
+        renderer = LabelRenderer(template)
+        pdf_bytes = renderer.render(
+            barcode_text="BEAMS-A1B2C3D4",
+            asset_name="Test",
+            category_name="Test",
+            qr_content="",
+        )
+        assert isinstance(pdf_bytes, bytes)
+        assert pdf_bytes[:5] == b"%PDF-"
+
     def test_render_with_barcode_element(self):
         template = LabelTemplate.objects.create(
             name="With Barcode", width_mm=62, height_mm=29

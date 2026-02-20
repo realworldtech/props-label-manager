@@ -172,7 +172,18 @@ class PrintJobAdmin(ModelAdmin):
     search_fields = ["barcode", "asset_name", "category_name"]
     readonly_fields = ["created_at", "completed_at"]
     fieldsets = (
-        (None, {"fields": ("barcode", "asset_name", "category_name", "quantity")}),
+        (
+            None,
+            {
+                "fields": (
+                    "barcode",
+                    "asset_name",
+                    "category_name",
+                    "qr_content",
+                    "quantity",
+                )
+            },
+        ),
         ("Routing", {"fields": ("printer", "template", "props_connection")}),
         (
             "Status",

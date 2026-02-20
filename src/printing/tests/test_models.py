@@ -173,6 +173,35 @@ class TestPrintJob:
         assert job.completed_at is None
         assert str(job) == "BEAMS-A1B2C3D4 - queued"
 
+    def test_print_job_with_qr_content(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-A1B2C3D4",
+            asset_name="Wireless Mic",
+            category_name="Audio",
+            qr_content="https://beams.example.com/assets/A1B2C3D4",
+        )
+        assert job.qr_content == "https://beams.example.com/assets/A1B2C3D4"
+
+    def test_print_job_qr_content_defaults_blank(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-A1B2C3D4",
+            asset_name="Wireless Mic",
+            category_name="Audio",
+        )
+        assert job.qr_content is None
+
     def test_print_job_with_connection(self):
         template = LabelTemplate.objects.create(
             name="Square", width_mm=62, height_mm=62

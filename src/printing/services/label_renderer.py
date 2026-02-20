@@ -30,10 +30,12 @@ class LabelRenderer:
         barcode_text: str,
         asset_name: str,
         category_name: str,
+        qr_content: str = "",
         quantity: int = 1,
     ) -> bytes:
         width = float(self.template.width_mm) * mm
         height = float(self.template.height_mm) * mm
+        qr_data = qr_content or barcode_text
 
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=(width, height))
@@ -45,14 +47,14 @@ class LabelRenderer:
                 c.showPage()
             for element in elements:
                 self._render_element(
-                    c, height, element, barcode_text, asset_name, category_name
+                    c, height, element, barcode_text, asset_name, category_name, qr_data
                 )
 
         c.save()
         return buf.getvalue()
 
     def _render_element(
-        self, c, page_height, element, barcode_text, asset_name, category_name
+        self, c, page_height, element, barcode_text, asset_name, category_name, qr_data
     ):
         x = float(element.x_mm) * mm
         y = float(element.y_mm) * mm
@@ -65,7 +67,7 @@ class LabelRenderer:
         if element.element_type == ElementType.BARCODE_128:
             self._render_barcode(c, barcode_text, x, rl_y, w, h)
         elif element.element_type == ElementType.QR_CODE:
-            self._render_qr(c, barcode_text, x, rl_y, w, h)
+            self._render_qr(c, qr_data, x, rl_y, w, h)
         elif element.element_type == ElementType.ASSET_NAME:
             self._render_text(c, element, asset_name, x, rl_y, w, h)
         elif element.element_type == ElementType.CATEGORY_NAME:

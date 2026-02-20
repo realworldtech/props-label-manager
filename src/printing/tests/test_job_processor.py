@@ -109,5 +109,28 @@ class TestJobProcessor:
             barcode_text="BEAMS-12345678",
             asset_name="Test",
             category_name="Cat",
+            qr_content="",
             quantity=5,
+        )
+
+    @patch("printing.services.job_processor.PrinterService")
+    @patch("printing.services.job_processor.LabelRenderer")
+    def test_job_passes_qr_content(self, MockRenderer, MockPrinterService):
+        template, printer = self._setup()
+        MockRenderer.return_value.render.return_value = b"%PDF-fake"
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Cat",
+            qr_content="https://beams.example.com/assets/12345678",
+        )
+        process_print_job(job)
+        MockRenderer.return_value.render.assert_called_once_with(
+            barcode_text="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Cat",
+            qr_content="https://beams.example.com/assets/12345678",
+            quantity=1,
         )

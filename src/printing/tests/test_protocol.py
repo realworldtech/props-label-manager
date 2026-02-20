@@ -96,6 +96,23 @@ class TestParseMessages:
         assert msg.data["barcode"] == "BEAMS-A1B2C3D4"
         assert msg.data["quantity"] == 2
 
+    def test_parse_print_request_with_qr_content(self):
+        raw = json.dumps(
+            {
+                "type": "print",
+                "job_id": "uuid-456",
+                "printer_id": "1",
+                "barcode": "BEAMS-A1B2C3D4",
+                "asset_name": "Wireless Mic",
+                "category_name": "Audio",
+                "qr_content": "https://beams.example.com/assets/A1B2C3D4",
+                "quantity": 1,
+            }
+        )
+        msg = parse_server_message(raw)
+        assert msg.type == MessageType.PRINT
+        assert msg.data["qr_content"] == "https://beams.example.com/assets/A1B2C3D4"
+
     def test_parse_invalid_json(self):
         with pytest.raises(ProtocolError, match="Invalid JSON"):
             parse_server_message("not json{{{")
