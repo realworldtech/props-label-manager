@@ -110,22 +110,24 @@ UNFOLD = {
                     {
                         "title": "Connections",
                         "icon": "cable",
-                        "link": reverse_lazy("admin:app_list", args=("printing",)),
+                        "link": reverse_lazy(
+                            "admin:printing_propsconnection_changelist"
+                        ),
                     },
                     {
                         "title": "Printers",
                         "icon": "print",
-                        "link": reverse_lazy("admin:app_list", args=("printing",)),
+                        "link": reverse_lazy("admin:printing_printer_changelist"),
                     },
                     {
                         "title": "Templates",
                         "icon": "description",
-                        "link": reverse_lazy("admin:app_list", args=("printing",)),
+                        "link": reverse_lazy("admin:printing_labeltemplate_changelist"),
                     },
                     {
                         "title": "Print Jobs",
                         "icon": "task",
-                        "link": reverse_lazy("admin:app_list", args=("printing",)),
+                        "link": reverse_lazy("admin:printing_printjob_changelist"),
                     },
                 ],
             },
