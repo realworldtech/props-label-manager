@@ -1,6 +1,6 @@
 Django==5.2.11
 django-unfold==0.78.1
-fpdf2==2.8.3
+reportlab==4.4.10
 python-barcode[images]==0.16.1
 qrcode[pil]==8.2
 websockets==15.0.1
