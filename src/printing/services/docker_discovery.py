@@ -15,6 +15,7 @@ def discover_printers() -> list[dict]:
     try:
         client = docker.from_env()
     except docker.errors.DockerException:
+        logger.warning("Docker not available for printer discovery", exc_info=True)
         return []
 
     containers = client.containers.list(
