@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin, TabularInline
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
 from unfold.decorators import display
 
@@ -13,24 +13,34 @@ from printing.models import (
 )
 
 
-class LabelElementInline(TabularInline):
+class LabelElementInline(StackedInline):
     model = LabelElement
-    extra = 1
-    fields = [
-        "element_type",
-        "x_mm",
-        "y_mm",
-        "width_mm",
-        "height_mm",
-        "rotation",
-        "font_name",
-        "font_size_pt",
-        "font_bold",
-        "text_align",
-        "max_chars",
-        "static_content",
-        "sort_order",
-    ]
+    extra = 0
+    tab = True
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    ("element_type", "sort_order"),
+                    ("x_mm", "y_mm", "width_mm", "height_mm"),
+                    "rotation",
+                ),
+            },
+        ),
+        (
+            "Text Options",
+            {
+                "fields": (
+                    ("font_name", "font_size_pt"),
+                    ("font_bold", "text_align"),
+                    "max_chars",
+                    "static_content",
+                ),
+                "classes": ["collapse"],
+            },
+        ),
+    )
 
 
 @admin.register(LabelTemplate)
