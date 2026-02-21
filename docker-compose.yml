@@ -42,31 +42,5 @@ services:
     # Uncomment if printers are on the host network
     # network_mode: host
 
-  # --- DYMO Label Printers ---
-  # One service per physical Dymo printer. The print-client auto-discovers
-  # containers with the "props.printer" label via the Docker API.
-  # Queue name (PRINTER_NAME) is auto-registered as a CUPS printer.
-  # See: https://github.com/realworldtech/dymolp-docker
-  #
-  # dymo-5xl:
-  #   image: ghcr.io/realworldtech/dymolp-docker:latest
-  #   restart: unless-stopped
-  #   labels:
-  #     props.printer: "true"
-  #     props.printer.name: "DYMO LabelWriter 5XL"
-  #   environment:
-  #     - PRINTER_NAME=DYMO-5XL
-  #     - PRINTER_URI=socket://YOUR_PRINTER_IP:9100
-  #     - PRINTER_PPD=lw5xl.ppd
-  #     - PRINTER_DESCRIPTION=DYMO LabelWriter 5XL
-  #   volumes:
-  #     - dymo-5xl-cups:/etc/cups
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -sf http://localhost:631/ || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 15s
-
 volumes:
   static_volume:

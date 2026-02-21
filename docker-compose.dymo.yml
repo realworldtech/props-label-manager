@@ -1,0 +1,25 @@
+# Dymo label printers — one service per physical printer.
+# The print-client auto-discovers containers with the "props.printer" label.
+# Copy the example below for each printer, setting PRINTER_URI to the real IP.
+# See: https://github.com/realworldtech/dymolp-docker
+
+services:
+  # dymo-5xl:
+  #   image: ghcr.io/realworldtech/dymolp-docker:latest
+  #   restart: unless-stopped
+  #   labels:
+  #     props.printer: "true"
+  #     props.printer.name: "DYMO LabelWriter 5XL"
+  #   environment:
+  #     - PRINTER_NAME=DYMO-5XL
+  #     - PRINTER_URI=socket://YOUR_PRINTER_IP:9100
+  #     - PRINTER_PPD=lw5xl.ppd
+  #     - PRINTER_DESCRIPTION=DYMO LabelWriter 5XL
+  #   volumes:
+  #     - dymo-5xl-cups:/etc/cups
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:631/ || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 15s
