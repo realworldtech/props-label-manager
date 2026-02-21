@@ -10,6 +10,7 @@ from printing.services.protocol import (
     ProtocolError,
     build_authenticate_message,
     build_pairing_request_message,
+    build_print_ack_message,
     build_print_status_message,
     parse_server_message,
 )
@@ -128,12 +129,18 @@ class PropsWebSocketClient:
                     self.connection_id,
                     message.data.get("server_name"),
                 )
+                new_token = message.data.get("new_token")
+                if new_token:
+                    self.pairing_token = new_token
+                    if self.on_token_received:
+                        await self.on_token_received(self.connection_id, new_token)
                 if self.on_status_change:
                     await self.on_status_change(self.connection_id, "connected")
             else:
                 logger.error(
-                    "Connection %s authentication failed",
+                    "Connection %s authentication failed: %s",
                     self.connection_id,
+                    message.data.get("message", "unknown error"),
                 )
                 if self.on_status_change:
                     await self.on_status_change(self.connection_id, "error")
@@ -154,8 +161,16 @@ class PropsWebSocketClient:
             if self.on_status_change:
                 await self.on_status_change(self.connection_id, "error")
 
+        elif message.type == MessageType.PAIRING_PENDING:
+            logger.info(
+                "Connection %s pairing pending: %s",
+                self.connection_id,
+                message.data.get("message", ""),
+            )
+
         elif message.type == MessageType.PRINT:
             job_id = message.data["job_id"]
+            await ws.send(build_print_ack_message(job_id))
             try:
                 if self.on_print_job:
                     await self.on_print_job(self.connection_id, message.data)
@@ -163,6 +178,24 @@ class PropsWebSocketClient:
             except Exception as e:
                 logger.error("Print job %s failed: %s", job_id, e)
                 await ws.send(build_print_status_message(job_id, "failed", str(e)))
+
+        elif message.type == MessageType.ERROR:
+            logger.error(
+                "Connection %s error: code=%s message=%s",
+                self.connection_id,
+                message.data.get("code"),
+                message.data.get("message"),
+            )
+            if self.on_status_change:
+                await self.on_status_change(self.connection_id, "error")
+
+        elif message.type == MessageType.FORCE_DISCONNECT:
+            logger.warning(
+                "Connection %s force disconnected: %s",
+                self.connection_id,
+                message.data.get("reason", ""),
+            )
+            self.stop()
 
     def stop(self):
         self._running = False
