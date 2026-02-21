@@ -118,10 +118,12 @@ class PropsWebSocketClient:
             if self.on_status_change:
                 await self.on_status_change(self.connection_id, "pairing")
 
+        logger.debug("Connection %s >>> %s", self.connection_id, msg)
         await ws.send(msg)
 
     async def _listen(self, ws):
         async for raw_message in ws:
+            logger.debug("Connection %s <<< %s", self.connection_id, raw_message)
             try:
                 message = parse_server_message(raw_message)
                 await self._handle_message(message, ws)
@@ -163,9 +165,9 @@ class PropsWebSocketClient:
                 await self.on_token_received(self.connection_id, token)
             logger.info("Connection %s paired successfully", self.connection_id)
             printer_info = await self._build_printer_info()
-            await ws.send(
-                build_authenticate_message(token, self.client_name, printer_info)
-            )
+            msg = build_authenticate_message(token, self.client_name, printer_info)
+            logger.debug("Connection %s >>> %s", self.connection_id, msg)
+            await ws.send(msg)
 
         elif message.type == MessageType.PAIRING_DENIED:
             logger.error("Connection %s pairing denied", self.connection_id)
@@ -181,14 +183,20 @@ class PropsWebSocketClient:
 
         elif message.type == MessageType.PRINT:
             job_id = message.data["job_id"]
-            await ws.send(build_print_ack_message(job_id))
+            ack_msg = build_print_ack_message(job_id)
+            logger.debug("Connection %s >>> %s", self.connection_id, ack_msg)
+            await ws.send(ack_msg)
             try:
                 if self.on_print_job:
                     await self.on_print_job(self.connection_id, message.data)
-                await ws.send(build_print_status_message(job_id, "completed"))
+                status_msg = build_print_status_message(job_id, "completed")
+                logger.debug("Connection %s >>> %s", self.connection_id, status_msg)
+                await ws.send(status_msg)
             except Exception as e:
                 logger.error("Print job %s failed: %s", job_id, e)
-                await ws.send(build_print_status_message(job_id, "failed", str(e)))
+                status_msg = build_print_status_message(job_id, "failed", str(e))
+                logger.debug("Connection %s >>> %s", self.connection_id, status_msg)
+                await ws.send(status_msg)
 
         elif message.type == MessageType.ERROR:
             logger.error(
