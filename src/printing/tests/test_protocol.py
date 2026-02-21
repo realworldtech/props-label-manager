@@ -38,18 +38,18 @@ class TestBuildMessages:
         assert parsed["client_name"] == "New Printer"
 
     def test_protocol_version_constant(self):
-        assert PROTOCOL_VERSION == "1"
+        assert PROTOCOL_VERSION == "2"
 
     def test_build_authenticate_includes_protocol_version(self):
         printers = [{"id": 1, "name": "Zebra", "status": "online", "templates": []}]
         msg = build_authenticate_message("token", "Client", printers)
         parsed = json.loads(msg)
-        assert parsed["protocol_version"] == "1"
+        assert parsed["protocol_version"] == "2"
 
     def test_build_pairing_request_includes_protocol_version(self):
         msg = build_pairing_request_message("Client")
         parsed = json.loads(msg)
-        assert parsed["protocol_version"] == "1"
+        assert parsed["protocol_version"] == "2"
 
     def test_build_print_status_completed(self):
         msg = build_print_status_message("job-uuid-123", "completed")

@@ -595,6 +595,10 @@
     barcode_text:    { fill: 'rgba(96, 125, 139, 0.15)', stroke: '#607D8B', label: 'Barcode Text' },
     logo:            { fill: 'rgba(255, 87, 34, 0.15)',  stroke: '#FF5722', label: 'Logo' },
     static_text:     { fill: 'rgba(63, 81, 181, 0.15)',  stroke: '#3F51B5', label: 'Static Text' },
+    location_name:        { fill: 'rgba(233, 30, 99, 0.15)',  stroke: '#E91E63', label: 'Location' },
+    location_description: { fill: 'rgba(171, 71, 188, 0.15)', stroke: '#AB47BC', label: 'Loc. Desc' },
+    location_categories:  { fill: 'rgba(38, 166, 154, 0.15)', stroke: '#26A69A', label: 'Loc. Categories' },
+    location_departments: { fill: 'rgba(255, 183, 77, 0.15)', stroke: '#FFB74D', label: 'Loc. Depts' },
   };
 
   const DEFAULT_SIZES = {
@@ -607,6 +611,10 @@
     barcode_text:    { w: 20, h: 3 },
     logo:            { w: 10, h: 10 },
     static_text:     { w: 15, h: 4 },
+    location_name:        { w: 25, h: 5 },
+    location_description: { w: 30, h: 4 },
+    location_categories:  { w: 30, h: 4 },
+    location_departments: { w: 25, h: 4 },
   };
 
   // ── Data ────────────────────────────────────────
@@ -862,7 +870,7 @@
   const staticContentSection = document.getElementById('staticContentSection');
   const alignBtns = document.querySelectorAll('.align-btn');
 
-  const TEXT_TYPES = ['asset_name', 'category_name', 'department_name', 'site_short_name', 'barcode_text', 'static_text'];
+  const TEXT_TYPES = ['asset_name', 'category_name', 'department_name', 'site_short_name', 'barcode_text', 'static_text', 'location_name', 'location_description', 'location_categories', 'location_departments'];
 
   function updatePanel(obj) {
     if (!obj || !obj._isElement) {
@@ -1130,6 +1138,10 @@
     --el-barcode_text: #607D8B;
     --el-logo: #FF5722;
     --el-static_text: #3F51B5;
+    --el-location_name: #E91E63;
+    --el-location_description: #AB47BC;
+    --el-location_categories: #26A69A;
+    --el-location_departments: #FFB74D;
   }
 </style>
 

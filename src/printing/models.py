@@ -10,6 +10,11 @@ class FontChoices(models.TextChoices):
     DEJAVU_MONO = "dejavu_mono", "DejaVu Sans Mono"
 
 
+class LabelType(models.TextChoices):
+    ASSET = "asset", "Asset"
+    LOCATION = "location", "Location"
+
+
 class ElementType(models.TextChoices):
     BARCODE_128 = "barcode_128", "Barcode (Code 128)"
     QR_CODE = "qr_code", "QR Code"
@@ -20,6 +25,10 @@ class ElementType(models.TextChoices):
     BARCODE_TEXT = "barcode_text", "Barcode Text"
     LOGO = "logo", "Logo"
     STATIC_TEXT = "static_text", "Static Text"
+    LOCATION_NAME = "location_name", "Location Name"
+    LOCATION_DESCRIPTION = "location_description", "Location Description"
+    LOCATION_CATEGORIES = "location_categories", "Location Categories"
+    LOCATION_DEPARTMENTS = "location_departments", "Location Departments"
 
 
 class TextAlign(models.TextChoices):
@@ -207,11 +216,18 @@ class PrintJob(models.Model):
     status = models.CharField(
         max_length=20, choices=JobStatus.choices, default=JobStatus.QUEUED
     )
-    barcode = models.CharField(max_length=100)
-    asset_name = models.CharField(max_length=200)
-    category_name = models.CharField(max_length=200)
+    label_type = models.CharField(
+        max_length=20, choices=LabelType.choices, default=LabelType.ASSET
+    )
+    barcode = models.CharField(max_length=100, blank=True, default="")
+    asset_name = models.CharField(max_length=200, blank=True, default="")
+    category_name = models.CharField(max_length=200, blank=True, default="")
     department_name = models.CharField(max_length=200, blank=True, default="")
     site_short_name = models.CharField(max_length=50, blank=True, default="")
+    location_name = models.CharField(max_length=200, blank=True, default="")
+    location_description = models.TextField(blank=True, default="")
+    location_categories = models.TextField(blank=True, default="")
+    location_departments = models.TextField(blank=True, default="")
     qr_content = models.URLField(
         blank=True,
         null=True,

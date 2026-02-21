@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
-PROTOCOL_VERSION = "1"
+PROTOCOL_VERSION = "2"
 
 
 class MessageType(Enum):
@@ -32,6 +32,12 @@ PRINT_REQUIRED_FIELDS = [
     "barcode",
     "asset_name",
     "category_name",
+]
+
+PRINT_REQUIRED_FIELDS_LOCATION = [
+    "job_id",
+    "printer_id",
+    "location_name",
 ]
 
 
@@ -97,7 +103,12 @@ def parse_server_message(raw: str) -> ServerMessage:
         raise ProtocolError(f"Unknown message type: {msg_type_str}")
 
     if msg_type == MessageType.PRINT:
-        for field in PRINT_REQUIRED_FIELDS:
+        label_type = data.get("label_type", "asset")
+        if label_type == "location":
+            required = PRINT_REQUIRED_FIELDS_LOCATION
+        else:
+            required = PRINT_REQUIRED_FIELDS
+        for field in required:
             if field not in data:
                 raise ProtocolError(
                     f"Missing required field '{field}' in print message"

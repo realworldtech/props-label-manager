@@ -115,6 +115,10 @@ class TestJobProcessor:
             quantity=5,
             department_name="",
             site_short_name="",
+            location_name="",
+            location_description="",
+            location_categories="",
+            location_departments="",
         )
 
     @patch("printing.services.job_processor.PrinterService")
@@ -139,6 +143,10 @@ class TestJobProcessor:
             quantity=1,
             department_name="",
             site_short_name="",
+            location_name="",
+            location_description="",
+            location_categories="",
+            location_departments="",
         )
 
     @patch("printing.services.job_processor.LabelRenderer")

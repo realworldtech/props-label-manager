@@ -97,5 +97,9 @@ def designer_preview(request, pk):
         category_name="Sample Category",
         department_name="Sample Department",
         site_short_name="HQ",
+        location_name="Storage Room A",
+        location_description="Ground floor, behind reception",
+        location_categories="Audio Equipment, Lighting, Cables",
+        location_departments="Sound, Lighting",
     )
     return HttpResponse(pdf_bytes, content_type="application/pdf")

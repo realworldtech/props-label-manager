@@ -34,6 +34,10 @@ class LabelRenderer:
         quantity: int = 1,
         department_name: str = "",
         site_short_name: str = "",
+        location_name: str = "",
+        location_description: str = "",
+        location_categories: str = "",
+        location_departments: str = "",
     ) -> bytes:
         width = float(self.template.width_mm) * mm
         height = float(self.template.height_mm) * mm
@@ -58,6 +62,10 @@ class LabelRenderer:
                     qr_data,
                     department_name,
                     site_short_name,
+                    location_name,
+                    location_description,
+                    location_categories,
+                    location_departments,
                 )
 
         c.save()
@@ -74,6 +82,10 @@ class LabelRenderer:
         qr_data,
         department_name,
         site_short_name,
+        location_name,
+        location_description,
+        location_categories,
+        location_departments,
     ):
         x = float(element.x_mm) * mm
         y = float(element.y_mm) * mm
@@ -101,6 +113,14 @@ class LabelRenderer:
             self._render_logo(c, x, rl_y, w, h)
         elif element.element_type == ElementType.STATIC_TEXT:
             self._render_text(c, element, element.static_content or "", x, rl_y, w, h)
+        elif element.element_type == ElementType.LOCATION_NAME:
+            self._render_text(c, element, location_name, x, rl_y, w, h)
+        elif element.element_type == ElementType.LOCATION_DESCRIPTION:
+            self._render_text(c, element, location_description, x, rl_y, w, h)
+        elif element.element_type == ElementType.LOCATION_CATEGORIES:
+            self._render_text(c, element, location_categories, x, rl_y, w, h)
+        elif element.element_type == ElementType.LOCATION_DEPARTMENTS:
+            self._render_text(c, element, location_departments, x, rl_y, w, h)
 
     def _render_barcode(self, c, text, x, y, w, h):
         code128 = barcode.get("code128", text, writer=ImageWriter())

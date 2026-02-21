@@ -31,6 +31,10 @@ def process_print_job(job: PrintJob) -> None:
             quantity=job.quantity,
             department_name=job.department_name,
             site_short_name=job.site_short_name,
+            location_name=job.location_name,
+            location_description=job.location_description,
+            location_categories=job.location_categories,
+            location_departments=job.location_departments,
         )
     except Exception as e:
         logger.error("Failed to render job %s: %s", job.pk, e)

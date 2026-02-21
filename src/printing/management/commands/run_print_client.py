@@ -146,17 +146,24 @@ class Command(BaseCommand):
             if not template:
                 raise Exception("No template available for printer")
 
+            label_type = data.get("label_type", "asset")
+
             job = PrintJob.objects.create(
                 props_connection_id=connection_id,
                 printer=printer,
                 template=template,
-                barcode=data["barcode"],
-                asset_name=data["asset_name"],
-                category_name=data["category_name"],
+                label_type=label_type,
+                barcode=data.get("barcode", ""),
+                asset_name=data.get("asset_name", ""),
+                category_name=data.get("category_name", ""),
                 qr_content=data.get("qr_content", ""),
                 quantity=data.get("quantity", 1),
                 department_name=data.get("department_name", ""),
                 site_short_name=data.get("site_short_name", ""),
+                location_name=data.get("location_name", ""),
+                location_description=data.get("location_description", ""),
+                location_categories=data.get("location_categories", ""),
+                location_departments=data.get("location_departments", ""),
             )
             process_print_job(job)
 

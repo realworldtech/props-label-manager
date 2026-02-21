@@ -238,6 +238,7 @@ class PrintJobAdmin(ModelAdmin):
     list_display = [
         "barcode",
         "asset_name",
+        "label_type",
         "display_status",
         "printer",
         "props_connection",
@@ -246,6 +247,7 @@ class PrintJobAdmin(ModelAdmin):
     ]
     list_filter = [
         ("status", ChoicesDropdownFilter),
+        ("label_type", ChoicesDropdownFilter),
     ]
     list_filter_submit = True
     search_fields = ["barcode", "asset_name", "category_name"]
@@ -255,12 +257,25 @@ class PrintJobAdmin(ModelAdmin):
             None,
             {
                 "fields": (
+                    "label_type",
                     "barcode",
                     "asset_name",
                     "category_name",
                     "qr_content",
                     "quantity",
                 )
+            },
+        ),
+        (
+            "Location",
+            {
+                "fields": (
+                    "location_name",
+                    "location_description",
+                    "location_categories",
+                    "location_departments",
+                ),
+                "classes": ["tab"],
             },
         ),
         ("Routing", {"fields": ("printer", "template", "props_connection")}),
