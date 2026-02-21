@@ -36,6 +36,7 @@ class Command(BaseCommand):
         self._clients = {}  # connection_id -> PropsWebSocketClient
         self._tasks = {}  # connection_id -> asyncio.Task
         self._client_name = client_name
+        self._printer_fingerprint = None
 
         while True:
             await self._sync_connections()
@@ -57,9 +58,22 @@ class Command(BaseCommand):
             del self._clients[conn_id]
             del self._tasks[conn_id]
 
-        desired = await asyncio.to_thread(self._get_desired_connections)
+        desired, printer_fp = await asyncio.to_thread(self._get_desired_state)
         desired_ids = set(desired.keys())
         running_ids = set(self._clients.keys())
+
+        # Restart all clients if the printer list changed
+        if (
+            self._printer_fingerprint is not None
+            and printer_fp != self._printer_fingerprint
+        ):
+            logger.info("Printer configuration changed, restarting all connections")
+            for conn_id in list(running_ids):
+                self._clients[conn_id].stop()
+                del self._clients[conn_id]
+                del self._tasks[conn_id]
+            running_ids = set()
+        self._printer_fingerprint = printer_fp
 
         # Start new connections (or restart dead ones)
         for conn_id in desired_ids - running_ids:
@@ -84,16 +98,24 @@ class Command(BaseCommand):
             del self._tasks[conn_id]
             logger.info("Stopped client for connection %s", conn_id)
 
-    def _get_desired_connections(self):
-        """Synchronous DB read — called via to_thread."""
+    def _get_desired_state(self):
+        """Synchronous DB read — called via to_thread.
+
+        Returns (connections_dict, printer_fingerprint).
+        """
         connections = PropsConnection.objects.filter(is_active=True)
-        return {
+        conn_dict = {
             conn.pk: {
                 "server_url": conn.server_url,
                 "pairing_token": conn.pairing_token,
             }
             for conn in connections
         }
+        printers = Printer.objects.filter(is_active=True).values_list(
+            "pk", "name", "printer_type", "status"
+        )
+        printer_fp = frozenset(printers)
+        return conn_dict, printer_fp
 
     async def _on_token_received(self, connection_id: int, token: str):
         conn = await asyncio.to_thread(PropsConnection.objects.get, pk=connection_id)

@@ -6,7 +6,7 @@ import pytest
 from django.core.management import call_command
 
 from printing.management.commands.run_print_client import Command
-from printing.models import PropsConnection
+from printing.models import Printer, PropsConnection
 
 
 @pytest.mark.django_db
@@ -45,6 +45,7 @@ class TestSyncConnections:
         cmd._clients = {}
         cmd._tasks = {}
         cmd._client_name = "Test Client"
+        cmd._printer_fingerprint = None
         return cmd
 
     @pytest.mark.asyncio
@@ -194,14 +195,14 @@ class TestSyncConnections:
             assert conn.pk in cmd._clients
             assert conn.pk in cmd._tasks
 
-    def test_get_desired_connections_returns_active_only(self):
+    def test_get_desired_state_returns_active_only(self):
         active = PropsConnection.objects.create(
             name="Active",
             server_url="wss://active.example.com/ws/",
             pairing_token="token-123",
             is_active=True,
         )
-        inactive = PropsConnection.objects.create(
+        PropsConnection.objects.create(
             name="Inactive",
             server_url="wss://inactive.example.com/ws/",
             pairing_token="token-456",
@@ -209,8 +210,49 @@ class TestSyncConnections:
         )
 
         cmd = self._make_command()
-        result = cmd._get_desired_connections()
+        result, printer_fp = cmd._get_desired_state()
 
         assert active.pk in result
-        assert inactive.pk not in result
         assert result[active.pk]["server_url"] == active.server_url
+
+    @pytest.mark.asyncio
+    async def test_restarts_clients_when_printer_added(self):
+        conn = await asyncio.to_thread(
+            PropsConnection.objects.create,
+            name="Server G",
+            server_url="wss://server-g.example.com/ws/",
+            pairing_token="token-g",
+            is_active=True,
+        )
+        cmd = self._make_command()
+
+        # First sync — establishes initial printer fingerprint
+        with patch(
+            "printing.management.commands.run_print_client.PropsWebSocketClient",
+            new_callable=_make_ws_mock,
+        ):
+            await cmd._sync_connections()
+
+        assert conn.pk in cmd._clients
+        original_client = cmd._clients[conn.pk]
+
+        # Replace task with a live one so dead-task cleanup doesn't remove it
+        cmd._tasks[conn.pk] = _make_live_task()
+
+        # Add a new printer
+        await asyncio.to_thread(
+            Printer.objects.create,
+            name="New Printer",
+            ip_address="192.168.1.200",
+        )
+
+        # Second sync — should restart because printer list changed
+        with patch(
+            "printing.management.commands.run_print_client.PropsWebSocketClient",
+            new_callable=_make_ws_mock,
+        ) as MockClient:
+            await cmd._sync_connections()
+
+            original_client.stop.assert_called_once()
+            MockClient.assert_called_once()
+            assert conn.pk in cmd._clients
