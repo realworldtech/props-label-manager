@@ -701,12 +701,16 @@
   drawGrid();
 
   // ── Element Factory ─────────────────────────────
-  function createElementGroup(data) {
+  // Uses plain Rect objects (not Groups) to avoid Fabric.js group scaling bugs.
+  // Labels are drawn as an overlay via after:render.
+  function createElement(data) {
     const color = ELEMENT_COLORS[data.element_type] || ELEMENT_COLORS.static_text;
     const w = data.width_mm * SCALE;
     const h = data.height_mm * SCALE;
 
     const rect = new fabric.Rect({
+      left: data.x_mm * SCALE,
+      top: data.y_mm * SCALE,
       width: w,
       height: h,
       fill: color.fill,
@@ -714,32 +718,9 @@
       strokeWidth: 1.5,
       rx: 2,
       ry: 2,
+      angle: data.rotation || 0,
       originX: 'left',
       originY: 'top',
-    });
-
-    const fontSize = Math.min(11, Math.max(8, h * 0.4));
-    const label = new fabric.Text(color.label, {
-      fontSize: fontSize,
-      fontFamily: 'DM Sans, sans-serif',
-      fill: color.stroke,
-      originX: 'center',
-      originY: 'center',
-      left: w / 2,
-      top: h / 2,
-      selectable: false,
-      evented: false,
-    });
-
-    // Clip label if wider than rect
-    if (label.width > w - 6) {
-      label.set({ fontSize: Math.max(7, fontSize - 2) });
-    }
-
-    const group = new fabric.Group([rect, label], {
-      left: data.x_mm * SCALE,
-      top: data.y_mm * SCALE,
-      angle: data.rotation || 0,
       hasControls: true,
       hasBorders: true,
       cornerColor: color.stroke,
@@ -749,22 +730,57 @@
       transparentCorners: false,
       borderColor: color.stroke,
       borderScaleFactor: 1.5,
+      noScaleCache: false,
+      strokeUniform: true,
       _isElement: true,
     });
 
-    group._elData = { ...data };
-    return group;
+    rect._elData = { ...data };
+    return rect;
   }
 
   function addElementToCanvas(data) {
-    const group = createElementGroup(data);
-    canvas.add(group);
-    return group;
+    const rect = createElement(data);
+    canvas.add(rect);
+    return rect;
   }
 
   function getCanvasElements() {
     return canvas.getObjects().filter(o => o._isElement);
   }
+
+  // Draw type labels on top of elements after canvas render
+  canvas.on('after:render', function() {
+    const ctx = canvas.getContext('2d');
+    getCanvasElements().forEach(obj => {
+      const color = ELEMENT_COLORS[obj._elData.element_type] || ELEMENT_COLORS.static_text;
+      const w = obj.getScaledWidth();
+      const h = obj.getScaledHeight();
+      const center = obj.getCenterPoint();
+
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.rotate((obj.angle || 0) * Math.PI / 180);
+
+      const fontSize = Math.min(11, Math.max(8, h * 0.35));
+      ctx.font = `500 ${fontSize}px DM Sans, sans-serif`;
+      ctx.fillStyle = color.stroke;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const label = color.label;
+      const metrics = ctx.measureText(label);
+      if (metrics.width < w - 4) {
+        ctx.fillText(label, 0, 0);
+      } else {
+        // Truncate if too wide
+        ctx.font = `500 ${Math.max(7, fontSize - 2)}px DM Sans, sans-serif`;
+        ctx.fillText(label, 0, 0);
+      }
+
+      ctx.restore();
+    });
+  });
 
   // ── Load Existing Elements ──────────────────────
   templateData.elements.forEach(el => addElementToCanvas(el));
@@ -792,16 +808,15 @@
   canvas.on('object:scaling', function(e) {
     const obj = e.target;
     if (!obj._isElement) return;
-    const w = obj.width * obj.scaleX;
-    const h = obj.height * obj.scaleY;
+    // Convert scale transform into actual width/height, snap, and reset scale
+    const newW = snapToGrid(obj.width * obj.scaleX);
+    const newH = snapToGrid(obj.height * obj.scaleY);
     obj.set({
-      width: snapToGrid(w),
-      height: snapToGrid(h),
+      width: Math.max(SCALE, newW),
+      height: Math.max(SCALE, newH),
       scaleX: 1,
       scaleY: 1,
     });
-    // Rebuild group visuals
-    rebuildElement(obj);
   });
 
   canvas.on('object:modified', function(e) {
@@ -816,31 +831,9 @@
     const d = obj._elData;
     d.x_mm = round2(obj.left / SCALE);
     d.y_mm = round2(obj.top / SCALE);
-    d.width_mm = round2(obj.getScaledWidth() / SCALE);
-    d.height_mm = round2(obj.getScaledHeight() / SCALE);
+    d.width_mm = round2((obj.width * (obj.scaleX || 1)) / SCALE);
+    d.height_mm = round2((obj.height * (obj.scaleY || 1)) / SCALE);
     d.rotation = Math.round(obj.angle || 0);
-  }
-
-  function rebuildElement(obj) {
-    const data = obj._elData;
-    syncDataFromCanvas(obj);
-    const color = ELEMENT_COLORS[data.element_type] || ELEMENT_COLORS.static_text;
-    const w = obj.width;
-    const h = obj.height;
-
-    const items = obj.getObjects();
-    const rect = items[0];
-    const label = items[1];
-
-    rect.set({ width: w, height: h, fill: color.fill, stroke: color.stroke });
-    const fontSize = Math.min(11, Math.max(8, h * 0.4));
-    label.set({
-      text: color.label,
-      fill: color.stroke,
-      fontSize: fontSize,
-      left: w / 2,
-      top: h / 2,
-    });
   }
 
   // ── Panel ───────────────────────────────────────
@@ -929,13 +922,21 @@
     obj.set({
       left: d.x_mm * SCALE,
       top: d.y_mm * SCALE,
+      width: d.width_mm * SCALE,
+      height: d.height_mm * SCALE,
       angle: d.rotation,
+      scaleX: 1,
+      scaleY: 1,
     });
-    // Resize via group dimensions
-    const newW = d.width_mm * SCALE;
-    const newH = d.height_mm * SCALE;
-    obj.set({ width: newW, height: newH, scaleX: 1, scaleY: 1 });
-    rebuildElement(obj);
+    // Update colour in case type changed
+    const color = ELEMENT_COLORS[d.element_type] || ELEMENT_COLORS.static_text;
+    obj.set({
+      fill: color.fill,
+      stroke: color.stroke,
+      cornerColor: color.stroke,
+      borderColor: color.stroke,
+    });
+    obj.setCoords();
     canvas.requestRenderAll();
 
     // Show/hide sections
