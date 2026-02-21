@@ -91,6 +91,11 @@ class ConnectionStatus(models.TextChoices):
     ERROR = "error", "Error"
 
 
+class PrinterType(models.TextChoices):
+    TCP = "tcp", "TCP (Network Printer)"
+    VIRTUAL = "virtual", "Virtual (Save PDF)"
+
+
 class PrinterStatus(models.TextChoices):
     UNKNOWN = "unknown", "Unknown"
     ONLINE = "online", "Online"
@@ -165,7 +170,12 @@ class PropsConnection(models.Model):
 
 class Printer(models.Model):
     name = models.CharField(max_length=100)
-    ip_address = models.GenericIPAddressField()
+    printer_type = models.CharField(
+        max_length=20,
+        choices=PrinterType.choices,
+        default=PrinterType.TCP,
+    )
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
     port = models.IntegerField(default=9100)
     is_active = models.BooleanField(default=True)
     default_template = models.ForeignKey(
@@ -183,6 +193,8 @@ class Printer(models.Model):
         ordering = ["name"]
 
     def __str__(self):
+        if self.printer_type == PrinterType.VIRTUAL:
+            return f"{self.name} (Virtual)"
         return f"{self.name} ({self.ip_address}:{self.port})"
 
 
@@ -206,6 +218,12 @@ class PrintJob(models.Model):
         help_text="URL to encode in QR code. If blank, uses the barcode string.",
     )
     quantity = models.IntegerField(default=1)
+    output_file = models.FileField(
+        upload_to="labels/",
+        blank=True,
+        null=True,
+        help_text="PDF output file (populated for virtual printer jobs).",
+    )
     error_message = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(blank=True, null=True)

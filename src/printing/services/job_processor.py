@@ -1,12 +1,20 @@
 import logging
 
+from django.core.files.base import ContentFile
 from django.utils import timezone
 
-from printing.models import JobStatus, PrintJob
+from printing.models import JobStatus, PrinterType, PrintJob
 from printing.services.label_renderer import LabelRenderer
 from printing.services.printer import PrintError, PrinterService
 
 logger = logging.getLogger(__name__)
+
+
+def _save_virtual_pdf(job: PrintJob, pdf_bytes: bytes) -> str:
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{job.pk}_{job.barcode}_{timestamp}.pdf"
+    job.output_file.save(filename, ContentFile(pdf_bytes), save=False)
+    return job.output_file.name
 
 
 def process_print_job(job: PrintJob) -> None:
@@ -35,10 +43,20 @@ def process_print_job(job: PrintJob) -> None:
         job.status = JobStatus.SENDING
         job.save(update_fields=["status"])
 
-        service = PrinterService(job.printer.ip_address, job.printer.port)
-        service.send(pdf_bytes)
+        if job.printer.printer_type == PrinterType.VIRTUAL:
+            saved_name = _save_virtual_pdf(job, pdf_bytes)
+            logger.info("Virtual print job %s saved to %s", job.pk, saved_name)
+        else:
+            service = PrinterService(job.printer.ip_address, job.printer.port)
+            service.send(pdf_bytes)
     except PrintError as e:
         logger.error("Failed to print job %s: %s", job.pk, e)
+        job.status = JobStatus.FAILED
+        job.error_message = str(e)
+        job.save(update_fields=["status", "error_message"])
+        return
+    except OSError as e:
+        logger.error("Failed to save virtual print job %s: %s", job.pk, e)
         job.status = JobStatus.FAILED
         job.error_message = str(e)
         job.save(update_fields=["status", "error_message"])
@@ -46,5 +64,8 @@ def process_print_job(job: PrintJob) -> None:
 
     job.status = JobStatus.COMPLETED
     job.completed_at = timezone.now()
-    job.save(update_fields=["status", "completed_at"])
+    update_fields = ["status", "completed_at"]
+    if job.output_file:
+        update_fields.append("output_file")
+    job.save(update_fields=update_fields)
     logger.info("Print job %s completed successfully", job.pk)

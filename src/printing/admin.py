@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
 from unfold.decorators import display
@@ -76,18 +77,28 @@ class LabelTemplateAdmin(ModelAdmin):
 class PrinterAdmin(ModelAdmin):
     list_display = [
         "name",
+        "printer_type",
         "ip_address",
         "port",
         "display_status",
         "display_active",
     ]
-    list_filter = [("status", ChoicesDropdownFilter), "is_active"]
+    list_filter = [("status", ChoicesDropdownFilter), "is_active", "printer_type"]
     search_fields = ["name", "ip_address"]
     autocomplete_fields = ["default_template"]
     fieldsets = (
         (
             None,
-            {"fields": ("name", "ip_address", "port", "is_active", "default_template")},
+            {
+                "fields": (
+                    "name",
+                    "printer_type",
+                    "ip_address",
+                    "port",
+                    "is_active",
+                    "default_template",
+                )
+            },
         ),
         ("Status", {"fields": ("status",), "classes": ["tab"]}),
     )
@@ -163,6 +174,7 @@ class PrintJobAdmin(ModelAdmin):
         "display_status",
         "printer",
         "props_connection",
+        "display_output_file",
         "created_at",
     ]
     list_filter = [
@@ -191,6 +203,7 @@ class PrintJobAdmin(ModelAdmin):
                 "fields": (
                     "status",
                     "error_message",
+                    "output_file",
                     "created_at",
                     "completed_at",
                 ),
@@ -211,3 +224,11 @@ class PrintJobAdmin(ModelAdmin):
     )
     def display_status(self, obj):
         return obj.status
+
+    @display(description="PDF")
+    def display_output_file(self, obj):
+        if obj.output_file:
+            return format_html(
+                '<a href="{}" target="_blank">View</a>', obj.output_file.url
+            )
+        return "-"

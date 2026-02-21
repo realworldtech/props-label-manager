@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +10,7 @@ from printing.models import (
     LabelElement,
     LabelTemplate,
     Printer,
+    PrinterType,
     PrintJob,
     TextAlign,
 )
@@ -138,3 +140,34 @@ class TestJobProcessor:
             department_name="",
             site_short_name="",
         )
+
+    @patch("printing.services.job_processor.LabelRenderer")
+    def test_virtual_printer_saves_pdf_to_file(self, MockRenderer, tmp_path, settings):
+        settings.MEDIA_ROOT = str(tmp_path)
+        template, _ = self._setup()
+        printer = Printer.objects.create(
+            name="Virtual",
+            printer_type=PrinterType.VIRTUAL,
+        )
+        pdf_content = b"%PDF-fake-virtual"
+        MockRenderer.return_value.render.return_value = pdf_content
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-99999999",
+            asset_name="Virtual Test",
+            category_name="Cat",
+        )
+
+        process_print_job(job)
+
+        job.refresh_from_db()
+        assert job.status == JobStatus.COMPLETED
+        assert job.completed_at is not None
+        assert job.output_file
+        assert job.output_file.name.startswith("labels/")
+        assert "BEAMS-99999999" in job.output_file.name
+
+        saved_path = Path(tmp_path) / job.output_file.name
+        assert saved_path.exists()
+        assert saved_path.read_bytes() == pdf_content
