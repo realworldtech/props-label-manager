@@ -1,6 +1,6 @@
 import json
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -142,6 +142,7 @@ class LabelTemplateAdmin(ModelAdmin):
 
 @admin.register(Printer)
 class PrinterAdmin(ModelAdmin):
+    actions_detail = ["send_test_print"]
     list_display = [
         "name",
         "printer_type",
@@ -169,6 +170,47 @@ class PrinterAdmin(ModelAdmin):
         ),
         ("Status", {"fields": ("status",), "classes": ["tab"]}),
     )
+
+    @action(description="Send Test Print", url_path="test-print")
+    def send_test_print(self, request, object_id):
+        from printing.services.job_processor import process_print_job
+
+        printer = self.get_object(request, object_id)
+
+        template = printer.default_template
+        if template is None:
+            template = LabelTemplate.objects.filter(is_default=True).first()
+        if template is None:
+            template = LabelTemplate.objects.first()
+        if template is None:
+            messages.error(
+                request,
+                "Cannot send test print: no label templates exist.",
+            )
+            return redirect(reverse("admin:printing_printer_change", args=[object_id]))
+
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="TEST-001",
+            asset_name="Test Print",
+            category_name="Test Category",
+            department_name="Test Department",
+            site_short_name="TST",
+        )
+
+        process_print_job(job)
+        job.refresh_from_db()
+
+        if job.status == "completed":
+            messages.success(request, "Test print completed successfully.")
+        else:
+            messages.error(
+                request,
+                f"Test print failed: {job.error_message or 'Unknown error'}",
+            )
+
+        return redirect(reverse("admin:printing_printjob_change", args=[job.pk]))
 
     @display(
         description="Status",
