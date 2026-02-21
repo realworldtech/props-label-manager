@@ -42,12 +42,15 @@ PRINT_REQUIRED_FIELDS_LOCATION = [
 
 
 def build_authenticate_message(
-    token: str, client_name: str, printers: list[dict]
+    token: str,
+    client_name: str,
+    printers: list[dict],
+    protocol_version: str = PROTOCOL_VERSION,
 ) -> str:
     return json.dumps(
         {
             "type": "authenticate",
-            "protocol_version": PROTOCOL_VERSION,
+            "protocol_version": protocol_version,
             "token": token,
             "client_name": client_name,
             "printers": printers,
@@ -55,11 +58,14 @@ def build_authenticate_message(
     )
 
 
-def build_pairing_request_message(client_name: str) -> str:
+def build_pairing_request_message(
+    client_name: str,
+    protocol_version: str = PROTOCOL_VERSION,
+) -> str:
     return json.dumps(
         {
             "type": "pairing_request",
-            "protocol_version": PROTOCOL_VERSION,
+            "protocol_version": protocol_version,
             "client_name": client_name,
         }
     )

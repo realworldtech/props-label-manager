@@ -6,6 +6,7 @@ import websockets
 
 from printing.models import Printer
 from printing.services.protocol import (
+    PROTOCOL_VERSION,
     MessageType,
     ProtocolError,
     build_authenticate_message,
@@ -40,6 +41,7 @@ class PropsWebSocketClient:
         self.on_print_job = on_print_job
         self._retry_count = 0
         self._running = False
+        self._protocol_version = PROTOCOL_VERSION
 
     def _get_backoff_delay(self, retry_count: int) -> int:
         return min(2**retry_count, MAX_BACKOFF)
@@ -113,10 +115,16 @@ class PropsWebSocketClient:
 
         if self.pairing_token:
             msg = build_authenticate_message(
-                self.pairing_token, self.client_name, printer_info
+                self.pairing_token,
+                self.client_name,
+                printer_info,
+                protocol_version=self._protocol_version,
             )
         else:
-            msg = build_pairing_request_message(self.client_name)
+            msg = build_pairing_request_message(
+                self.client_name,
+                protocol_version=self._protocol_version,
+            )
             if self.on_status_change:
                 await self.on_status_change(self.connection_id, "pairing")
 
@@ -167,7 +175,12 @@ class PropsWebSocketClient:
                 await self.on_token_received(self.connection_id, token)
             logger.info("Connection %s paired successfully", self.connection_id)
             printer_info = await self._build_printer_info()
-            msg = build_authenticate_message(token, self.client_name, printer_info)
+            msg = build_authenticate_message(
+                token,
+                self.client_name,
+                printer_info,
+                protocol_version=self._protocol_version,
+            )
             logger.info("Connection %s >>> %s", self.connection_id, msg)
             await ws.send(msg)
 
@@ -201,12 +214,22 @@ class PropsWebSocketClient:
                 await ws.send(status_msg)
 
         elif message.type == MessageType.ERROR:
+            code = message.data.get("code")
             logger.error(
                 "Connection %s error: code=%s message=%s",
                 self.connection_id,
-                message.data.get("code"),
+                code,
                 message.data.get("message"),
             )
+            if code == "version_mismatch" and self._protocol_version != "1":
+                logger.info(
+                    "Connection %s degrading protocol from v%s to v1",
+                    self.connection_id,
+                    self._protocol_version,
+                )
+                self._protocol_version = "1"
+                await ws.close()
+                return
             if self.on_status_change:
                 await self.on_status_change(self.connection_id, "error")
 

@@ -50,6 +50,7 @@
 
     /* ── Toolbar ──────────────────────────────────── */
     .toolbar {
+      position: relative;
       height: var(--toolbar-h);
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
@@ -358,6 +359,8 @@
       top: calc(100% + 4px);
       left: 0;
       min-width: 200px;
+      max-height: calc(100vh - var(--toolbar-h) - 16px);
+      overflow-y: auto;
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);

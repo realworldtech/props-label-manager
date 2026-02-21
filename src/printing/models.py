@@ -65,7 +65,7 @@ class LabelElement(models.Model):
     template = models.ForeignKey(
         LabelTemplate, on_delete=models.CASCADE, related_name="elements"
     )
-    element_type = models.CharField(max_length=20, choices=ElementType.choices)
+    element_type = models.CharField(max_length=30, choices=ElementType.choices)
     x_mm = models.DecimalField(max_digits=6, decimal_places=2)
     y_mm = models.DecimalField(max_digits=6, decimal_places=2)
     width_mm = models.DecimalField(max_digits=6, decimal_places=2)

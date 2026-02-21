@@ -1,9 +1,10 @@
+import asyncio
 import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from printing.services.protocol import MessageType, ServerMessage
+from printing.services.protocol import PROTOCOL_VERSION, MessageType, ServerMessage
 from printing.services.ws_client import PropsWebSocketClient
 
 
@@ -190,3 +191,58 @@ class TestHandleMessage:
         )
         await client._handle_message(message, mock_ws)
         assert client._running is False
+
+    @pytest.mark.asyncio
+    async def test_version_mismatch_degrades_to_v1(self):
+        client = PropsWebSocketClient(
+            connection_id=1,
+            server_url="wss://example.com/ws/",
+            client_name="Test",
+        )
+        assert client._protocol_version == PROTOCOL_VERSION
+
+        close_future = asyncio.get_event_loop().create_future()
+        close_future.set_result(None)
+
+        mock_ws = MagicMock()
+        mock_ws.close = MagicMock(return_value=close_future)
+        message = ServerMessage(
+            type=MessageType.ERROR,
+            data={"code": "version_mismatch", "message": "Unsupported version"},
+        )
+        await client._handle_message(message, mock_ws)
+        assert client._protocol_version == "1"
+        mock_ws.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_version_mismatch_no_further_degrade_from_v1(self):
+        statuses = []
+
+        async def mock_status_change(conn_id, status):
+            statuses.append(status)
+
+        client = PropsWebSocketClient(
+            connection_id=1,
+            server_url="wss://example.com/ws/",
+            client_name="Test",
+            on_status_change=mock_status_change,
+        )
+        client._protocol_version = "1"
+
+        mock_ws = MagicMock()
+        message = ServerMessage(
+            type=MessageType.ERROR,
+            data={"code": "version_mismatch", "message": "Unsupported version"},
+        )
+        await client._handle_message(message, mock_ws)
+        assert client._protocol_version == "1"
+        assert "error" in statuses
+
+    @pytest.mark.asyncio
+    async def test_init_starts_at_latest_protocol_version(self):
+        client = PropsWebSocketClient(
+            connection_id=1,
+            server_url="wss://example.com/ws/",
+            client_name="Test",
+        )
+        assert client._protocol_version == "2"

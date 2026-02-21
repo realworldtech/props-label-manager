@@ -51,6 +51,19 @@ class TestBuildMessages:
         parsed = json.loads(msg)
         assert parsed["protocol_version"] == "2"
 
+    def test_build_authenticate_with_custom_version(self):
+        printers = [{"id": 1, "name": "Zebra", "status": "online", "templates": []}]
+        msg = build_authenticate_message(
+            "token", "Client", printers, protocol_version="1"
+        )
+        parsed = json.loads(msg)
+        assert parsed["protocol_version"] == "1"
+
+    def test_build_pairing_request_with_custom_version(self):
+        msg = build_pairing_request_message("Client", protocol_version="1")
+        parsed = json.loads(msg)
+        assert parsed["protocol_version"] == "1"
+
     def test_build_print_status_completed(self):
         msg = build_print_status_message("job-uuid-123", "completed")
         parsed = json.loads(msg)
