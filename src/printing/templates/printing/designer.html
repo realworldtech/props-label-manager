@@ -133,12 +133,28 @@
       height: calc(100vh - var(--toolbar-h));
     }
 
+    /* ── Zoom Controls ────────────────────────────── */
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .btn-icon {
+      padding: 6px 8px;
+    }
+
+    .zoom-display {
+      font-family: var(--mono);
+      font-size: 11px;
+      min-width: 52px;
+      text-align: center;
+      justify-content: center;
+    }
+
     /* ── Canvas Area ─────────────────────────────── */
     .canvas-area {
       flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: auto;
       position: relative;
       background:
@@ -146,13 +162,25 @@
         var(--bg-workspace);
     }
 
+    .canvas-scaler {
+      /* Sized dynamically by JS to match scaled canvas dimensions + padding */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      min-width: 100%;
+      padding: 40px;
+    }
+
     .canvas-wrapper {
       position: relative;
+      transform-origin: 0 0;
       box-shadow:
         0 0 0 1px rgba(255,255,255,0.06),
         0 20px 60px rgba(0,0,0,0.4),
         0 4px 16px rgba(0,0,0,0.2);
       border-radius: 2px;
+      flex-shrink: 0;
     }
 
     .canvas-dimensions {
@@ -416,6 +444,21 @@
 
   <div class="toolbar-spacer"></div>
 
+  <div class="zoom-controls">
+    <button class="btn btn-icon" id="zoomOutBtn" title="Zoom Out (Ctrl+-)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="btn zoom-display" id="zoomDisplay" title="Click to fit to screen (Ctrl+0)">100%</button>
+    <button class="btn btn-icon" id="zoomInBtn" title="Zoom In (Ctrl++)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="btn btn-icon" id="zoomFitBtn" title="Fit to Screen (Ctrl+0)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+    </button>
+  </div>
+
+  <div class="toolbar-sep"></div>
+
   <button class="btn" id="undoBtn" title="Undo (Ctrl+Z)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
   </button>
@@ -444,10 +487,12 @@
 <!-- Main layout -->
 <div class="layout">
   <!-- Canvas area -->
-  <div class="canvas-area">
-    <div class="canvas-wrapper">
-      <canvas id="labelCanvas"></canvas>
-      <div class="canvas-dimensions" id="canvasDims"></div>
+  <div class="canvas-area" id="canvasArea">
+    <div class="canvas-scaler" id="canvasScaler">
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="labelCanvas"></canvas>
+        <div class="canvas-dimensions" id="canvasDims"></div>
+      </div>
     </div>
   </div>
 
@@ -678,6 +723,74 @@
 
   document.getElementById('canvasDims').textContent =
     templateData.template.width_mm + ' × ' + templateData.template.height_mm + ' mm';
+
+  // ── Zoom ─────────────────────────────────────
+  const canvasArea = document.getElementById('canvasArea');
+  const canvasScaler = document.getElementById('canvasScaler');
+  const canvasWrapper = document.getElementById('canvasWrapper');
+  const zoomDisplay = document.getElementById('zoomDisplay');
+
+  const ZOOM_MIN = 0.1;
+  const ZOOM_MAX = 3.0;
+  const ZOOM_STEP = 0.1;
+  let currentZoom = 1;
+
+  function setZoom(newZoom, scrollTarget) {
+    newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(newZoom * 100) / 100));
+    currentZoom = newZoom;
+
+    canvasWrapper.style.transform = 'scale(' + newZoom + ')';
+
+    // Set scaler dimensions so scroll area is correct
+    const scaledW = canvasW * newZoom + 80;  // 40px padding each side
+    const scaledH = canvasH * newZoom + 80;
+    canvasScaler.style.minWidth = scaledW + 'px';
+    canvasScaler.style.minHeight = scaledH + 'px';
+
+    zoomDisplay.textContent = Math.round(newZoom * 100) + '%';
+  }
+
+  function fitToScreen() {
+    const areaW = canvasArea.clientWidth - 80;  // padding
+    const areaH = canvasArea.clientHeight - 80;
+    const zoom = Math.min(areaW / canvasW, areaH / canvasH, 1.0);
+    setZoom(zoom);
+    // Centre the scroll
+    canvasArea.scrollLeft = (canvasScaler.scrollWidth - canvasArea.clientWidth) / 2;
+    canvasArea.scrollTop = (canvasScaler.scrollHeight - canvasArea.clientHeight) / 2;
+  }
+
+  document.getElementById('zoomInBtn').addEventListener('click', () => setZoom(currentZoom + ZOOM_STEP));
+  document.getElementById('zoomOutBtn').addEventListener('click', () => setZoom(currentZoom - ZOOM_STEP));
+  document.getElementById('zoomFitBtn').addEventListener('click', fitToScreen);
+  document.getElementById('zoomDisplay').addEventListener('click', fitToScreen);
+
+  // Ctrl+scroll wheel zoom
+  canvasArea.addEventListener('wheel', function(e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+
+    const oldZoom = currentZoom;
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round((oldZoom + delta) * 100) / 100));
+
+    // Get cursor position relative to the scroll container
+    const rect = canvasArea.getBoundingClientRect();
+    const cursorX = e.clientX - rect.left + canvasArea.scrollLeft;
+    const cursorY = e.clientY - rect.top + canvasArea.scrollTop;
+
+    // Calculate where cursor points in canvas coordinates
+    const ratio = newZoom / oldZoom;
+
+    setZoom(newZoom);
+
+    // Adjust scroll to keep the point under cursor stable
+    canvasArea.scrollLeft = cursorX * ratio - (e.clientX - rect.left);
+    canvasArea.scrollTop = cursorY * ratio - (e.clientY - rect.top);
+  }, { passive: false });
+
+  // Auto-fit on load (deferred so layout is ready)
+  requestAnimationFrame(fitToScreen);
 
   // Draw grid
   function drawGrid() {
@@ -1052,6 +1165,19 @@
     if ((e.metaKey || e.ctrlKey) && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
       e.preventDefault();
       redo();
+    }
+    // Zoom keyboard shortcuts
+    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
+      e.preventDefault();
+      setZoom(currentZoom + ZOOM_STEP);
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === '-') {
+      e.preventDefault();
+      setZoom(currentZoom - ZOOM_STEP);
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+      e.preventDefault();
+      fitToScreen();
     }
   });
 
