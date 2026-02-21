@@ -4,6 +4,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from printing.models import JobStatus, PrinterType, PrintJob
+from printing.services.cups_printer import CupsPrinterService
 from printing.services.label_renderer import LabelRenderer
 from printing.services.printer import PrintError, PrinterService
 
@@ -50,6 +51,12 @@ def process_print_job(job: PrintJob) -> None:
         if job.printer.printer_type == PrinterType.VIRTUAL:
             saved_name = _save_virtual_pdf(job, pdf_bytes)
             logger.info("Virtual print job %s saved to %s", job.pk, saved_name)
+        elif job.printer.printer_type == PrinterType.CUPS:
+            service = CupsPrinterService(
+                job.printer.cups_queue,
+                server=job.printer.cups_server,
+            )
+            service.send(pdf_bytes)
         else:
             service = PrinterService(job.printer.ip_address, job.printer.port)
             service.send(pdf_bytes)

@@ -13,6 +13,7 @@ from printing.models import (
     LabelElement,
     LabelTemplate,
     Printer,
+    PrinterType,
     PrintJob,
     PropsConnection,
 )
@@ -146,13 +147,13 @@ class PrinterAdmin(ModelAdmin):
     list_display = [
         "name",
         "printer_type",
-        "ip_address",
-        "port",
+        "display_address",
         "display_status",
         "display_active",
     ]
     list_filter = [("status", ChoicesDropdownFilter), "is_active", "printer_type"]
-    search_fields = ["name", "ip_address"]
+    search_fields = ["name", "ip_address", "cups_queue"]
+    readonly_fields = ["cups_server"]
     autocomplete_fields = ["default_template"]
     fieldsets = (
         (
@@ -163,6 +164,8 @@ class PrinterAdmin(ModelAdmin):
                     "printer_type",
                     "ip_address",
                     "port",
+                    "cups_queue",
+                    "cups_server",
                     "is_active",
                     "default_template",
                 )
@@ -211,6 +214,17 @@ class PrinterAdmin(ModelAdmin):
             )
 
         return redirect(reverse("admin:printing_printjob_change", args=[job.pk]))
+
+    @display(description="Address")
+    def display_address(self, obj):
+        if obj.printer_type == PrinterType.CUPS:
+            server = f" @ {obj.cups_server}" if obj.cups_server else ""
+            return f"{obj.cups_queue}{server}" if obj.cups_queue else "-"
+        if obj.printer_type == PrinterType.VIRTUAL:
+            return "Virtual"
+        if obj.ip_address:
+            return f"{obj.ip_address}:{obj.port}"
+        return "-"
 
     @display(
         description="Status",

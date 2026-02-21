@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -102,6 +103,7 @@ class ConnectionStatus(models.TextChoices):
 
 class PrinterType(models.TextChoices):
     TCP = "tcp", "TCP (Network Printer)"
+    CUPS = "cups", "CUPS (System Printer)"
     VIRTUAL = "virtual", "Virtual (Save PDF)"
 
 
@@ -186,6 +188,20 @@ class Printer(models.Model):
     )
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     port = models.IntegerField(default=9100)
+    cups_queue = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="CUPS queue name — must match PRINTER_NAME in dymolp-docker "
+        "(e.g. DYMO-5XL)",
+    )
+    cups_server = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="CUPS server address (e.g. dymo-5xl:631). "
+        "Auto-populated by Docker discovery.",
+    )
     is_active = models.BooleanField(default=True)
     default_template = models.ForeignKey(
         LabelTemplate, on_delete=models.SET_NULL, blank=True, null=True
@@ -201,9 +217,22 @@ class Printer(models.Model):
     class Meta:
         ordering = ["name"]
 
+    def clean(self):
+        if self.printer_type == PrinterType.TCP and not self.ip_address:
+            raise ValidationError(
+                {"ip_address": "IP address is required for TCP printers."}
+            )
+        if self.printer_type == PrinterType.CUPS and not self.cups_queue:
+            raise ValidationError(
+                {"cups_queue": "CUPS queue name is required for CUPS printers."}
+            )
+
     def __str__(self):
         if self.printer_type == PrinterType.VIRTUAL:
             return f"{self.name} (Virtual)"
+        if self.printer_type == PrinterType.CUPS:
+            server = f" @ {self.cups_server}" if self.cups_server else ""
+            return f"{self.name} (CUPS: {self.cups_queue}{server})"
         return f"{self.name} ({self.ip_address}:{self.port})"
 
 

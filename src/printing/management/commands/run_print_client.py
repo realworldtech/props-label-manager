@@ -43,6 +43,17 @@ class Command(BaseCommand):
             await asyncio.sleep(10)
 
     async def _sync_connections(self):
+        # Discover CUPS printers from Docker labels
+        results = await asyncio.to_thread(self._discover_printers)
+        for r in results:
+            if r["created"]:
+                logger.info(
+                    "Discovered new printer: %s (queue: %s, server: %s)",
+                    r["name"],
+                    r["cups_queue"],
+                    r["cups_server"],
+                )
+
         # Remove dead tasks (crashed or unexpectedly finished)
         dead_ids = [conn_id for conn_id, task in self._tasks.items() if task.done()]
         for conn_id in dead_ids:
@@ -116,6 +127,11 @@ class Command(BaseCommand):
         )
         printer_fp = frozenset(printers)
         return conn_dict, printer_fp
+
+    def _discover_printers(self):
+        from printing.services.docker_discovery import discover_printers
+
+        return discover_printers()
 
     async def _on_token_received(self, connection_id: int, token: str):
         conn = await asyncio.to_thread(PropsConnection.objects.get, pk=connection_id)

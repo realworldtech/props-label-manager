@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 
 from printing.models import (
     ElementType,
@@ -6,6 +7,7 @@ from printing.models import (
     LabelElement,
     LabelTemplate,
     Printer,
+    PrinterType,
     PrintJob,
     PropsConnection,
     TextAlign,
@@ -117,6 +119,60 @@ class TestPrinter:
         assert printer.is_active is True
         assert printer.status == "unknown"
         assert str(printer) == "Warehouse Zebra (192.168.1.100:9100)"
+
+    def test_cups_printer_str(self):
+        printer = Printer.objects.create(
+            name="Dymo 5XL",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO_LabelWriter_5XL",
+        )
+        assert str(printer) == "Dymo 5XL (CUPS: DYMO_LabelWriter_5XL)"
+
+    def test_cups_printer_str_with_server(self):
+        printer = Printer.objects.create(
+            name="Dymo 5XL",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO-5XL",
+            cups_server="dymo-5xl:631",
+        )
+        assert str(printer) == "Dymo 5XL (CUPS: DYMO-5XL @ dymo-5xl:631)"
+
+    def test_virtual_printer_str(self):
+        printer = Printer.objects.create(
+            name="PDF Output",
+            printer_type=PrinterType.VIRTUAL,
+        )
+        assert str(printer) == "PDF Output (Virtual)"
+
+    def test_clean_tcp_requires_ip_address(self):
+        printer = Printer(name="TCP No IP", printer_type=PrinterType.TCP)
+        with pytest.raises(ValidationError) as exc_info:
+            printer.clean()
+        assert "ip_address" in exc_info.value.message_dict
+
+    def test_clean_tcp_with_ip_passes(self):
+        printer = Printer(
+            name="TCP OK", printer_type=PrinterType.TCP, ip_address="192.168.1.1"
+        )
+        printer.clean()
+
+    def test_clean_cups_requires_queue(self):
+        printer = Printer(name="CUPS No Queue", printer_type=PrinterType.CUPS)
+        with pytest.raises(ValidationError) as exc_info:
+            printer.clean()
+        assert "cups_queue" in exc_info.value.message_dict
+
+    def test_clean_cups_with_queue_passes(self):
+        printer = Printer(
+            name="CUPS OK",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO_LabelWriter_5XL",
+        )
+        printer.clean()
+
+    def test_clean_virtual_no_requirements(self):
+        printer = Printer(name="Virtual", printer_type=PrinterType.VIRTUAL)
+        printer.clean()
 
     def test_printer_with_default_template(self):
         template = LabelTemplate.objects.create(

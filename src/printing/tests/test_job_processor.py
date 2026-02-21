@@ -179,3 +179,79 @@ class TestJobProcessor:
         saved_path = Path(tmp_path) / job.output_file.name
         assert saved_path.exists()
         assert saved_path.read_bytes() == pdf_content
+
+    @patch("printing.services.job_processor.CupsPrinterService")
+    @patch("printing.services.job_processor.LabelRenderer")
+    def test_cups_printer_success(self, MockRenderer, MockCupsService):
+        template, _ = self._setup()
+        printer = Printer.objects.create(
+            name="CUPS Dymo",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO_LabelWriter_5XL",
+        )
+        MockRenderer.return_value.render.return_value = b"%PDF-fake"
+        MockCupsService.return_value.send.return_value = "DYMO_LabelWriter_5XL-42"
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Cat",
+        )
+
+        process_print_job(job)
+
+        job.refresh_from_db()
+        assert job.status == JobStatus.COMPLETED
+        assert job.completed_at is not None
+        MockCupsService.assert_called_once_with("DYMO_LabelWriter_5XL", server=None)
+        MockCupsService.return_value.send.assert_called_once_with(b"%PDF-fake")
+
+    @patch("printing.services.job_processor.CupsPrinterService")
+    @patch("printing.services.job_processor.LabelRenderer")
+    def test_cups_printer_passes_server(self, MockRenderer, MockCupsService):
+        template, _ = self._setup()
+        printer = Printer.objects.create(
+            name="CUPS Dymo",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO-5XL",
+            cups_server="dymo-5xl:631",
+        )
+        MockRenderer.return_value.render.return_value = b"%PDF-fake"
+        MockCupsService.return_value.send.return_value = "DYMO-5XL-1"
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Cat",
+        )
+
+        process_print_job(job)
+
+        MockCupsService.assert_called_once_with("DYMO-5XL", server="dymo-5xl:631")
+
+    @patch("printing.services.job_processor.CupsPrinterService")
+    @patch("printing.services.job_processor.LabelRenderer")
+    def test_cups_printer_failure(self, MockRenderer, MockCupsService):
+        template, _ = self._setup()
+        printer = Printer.objects.create(
+            name="CUPS Dymo",
+            printer_type=PrinterType.CUPS,
+            cups_queue="DYMO_LabelWriter_5XL",
+        )
+        MockRenderer.return_value.render.return_value = b"%PDF-fake"
+        MockCupsService.return_value.send.side_effect = PrintError("lp command failed")
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Cat",
+        )
+
+        process_print_job(job)
+
+        job.refresh_from_db()
+        assert job.status == JobStatus.FAILED
+        assert "lp command failed" in job.error_message
