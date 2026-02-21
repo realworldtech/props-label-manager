@@ -31,6 +31,8 @@ services:
       python manage.py migrate --noinput &&
       python manage.py run_print_client --client-name '${CLIENT_NAME:-PROPS Print Client}'
       "
+    group_add:
+      - "${DOCKER_GID:-999}"
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro
