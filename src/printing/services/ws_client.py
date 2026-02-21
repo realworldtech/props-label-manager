@@ -74,7 +74,9 @@ class PropsWebSocketClient:
                 if self.on_status_change:
                     await self.on_status_change(self.connection_id, "connecting")
 
-                async with websockets.connect(self.server_url) as ws:
+                async with websockets.connect(
+                    self.server_url, ping_interval=10, ping_timeout=10
+                ) as ws:
                     self._retry_count = 0
                     await self._on_connected(ws)
                     await self._listen(ws)
