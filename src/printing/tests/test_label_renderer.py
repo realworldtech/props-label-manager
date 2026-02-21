@@ -157,6 +157,56 @@ class TestLabelRenderer:
         )
         assert pdf_bytes[:5] == b"%PDF-"
 
+    def test_render_with_department_name(self):
+        template = LabelTemplate.objects.create(
+            name="With Department", width_mm=62, height_mm=62
+        )
+        LabelElement.objects.create(
+            template=template,
+            element_type=ElementType.DEPARTMENT_NAME,
+            x_mm=2,
+            y_mm=55,
+            width_mm=58,
+            height_mm=5,
+            font_name=FontChoices.HELVETICA,
+            font_size_pt=6,
+            text_align=TextAlign.CENTER,
+            sort_order=1,
+        )
+        renderer = LabelRenderer(template)
+        pdf_bytes = renderer.render(
+            barcode_text="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Audio",
+            department_name="Technical Services",
+        )
+        assert pdf_bytes[:5] == b"%PDF-"
+
+    def test_render_with_site_short_name(self):
+        template = LabelTemplate.objects.create(
+            name="With Site", width_mm=62, height_mm=62
+        )
+        LabelElement.objects.create(
+            template=template,
+            element_type=ElementType.SITE_SHORT_NAME,
+            x_mm=2,
+            y_mm=55,
+            width_mm=58,
+            height_mm=5,
+            font_name=FontChoices.HELVETICA,
+            font_size_pt=6,
+            text_align=TextAlign.CENTER,
+            sort_order=1,
+        )
+        renderer = LabelRenderer(template)
+        pdf_bytes = renderer.render(
+            barcode_text="BEAMS-12345678",
+            asset_name="Test",
+            category_name="Audio",
+            site_short_name="HDM",
+        )
+        assert pdf_bytes[:5] == b"%PDF-"
+
     def test_render_with_category_name(self):
         template = LabelTemplate.objects.create(
             name="With Category", width_mm=62, height_mm=62

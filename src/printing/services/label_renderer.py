@@ -32,6 +32,8 @@ class LabelRenderer:
         category_name: str,
         qr_content: str = "",
         quantity: int = 1,
+        department_name: str = "",
+        site_short_name: str = "",
     ) -> bytes:
         width = float(self.template.width_mm) * mm
         height = float(self.template.height_mm) * mm
@@ -47,14 +49,31 @@ class LabelRenderer:
                 c.showPage()
             for element in elements:
                 self._render_element(
-                    c, height, element, barcode_text, asset_name, category_name, qr_data
+                    c,
+                    height,
+                    element,
+                    barcode_text,
+                    asset_name,
+                    category_name,
+                    qr_data,
+                    department_name,
+                    site_short_name,
                 )
 
         c.save()
         return buf.getvalue()
 
     def _render_element(
-        self, c, page_height, element, barcode_text, asset_name, category_name, qr_data
+        self,
+        c,
+        page_height,
+        element,
+        barcode_text,
+        asset_name,
+        category_name,
+        qr_data,
+        department_name,
+        site_short_name,
     ):
         x = float(element.x_mm) * mm
         y = float(element.y_mm) * mm
@@ -72,6 +91,10 @@ class LabelRenderer:
             self._render_text(c, element, asset_name, x, rl_y, w, h)
         elif element.element_type == ElementType.CATEGORY_NAME:
             self._render_text(c, element, category_name, x, rl_y, w, h)
+        elif element.element_type == ElementType.DEPARTMENT_NAME:
+            self._render_text(c, element, department_name, x, rl_y, w, h)
+        elif element.element_type == ElementType.SITE_SHORT_NAME:
+            self._render_text(c, element, site_short_name, x, rl_y, w, h)
         elif element.element_type == ElementType.BARCODE_TEXT:
             self._render_text(c, element, barcode_text, x, rl_y, w, h)
         elif element.element_type == ElementType.LOGO:

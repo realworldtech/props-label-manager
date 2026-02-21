@@ -75,6 +75,12 @@ class TestLabelElement:
         assert element.font_name == "helvetica"
         assert element.text_align == "center"
 
+    def test_department_name_element_type(self):
+        assert ElementType.DEPARTMENT_NAME == "department_name"
+
+    def test_site_short_name_element_type(self):
+        assert ElementType.SITE_SHORT_NAME == "site_short_name"
+
     def test_element_ordering(self):
         template = LabelTemplate.objects.create(name="Test", width_mm=62, height_mm=62)
         e2 = LabelElement.objects.create(

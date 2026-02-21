@@ -111,6 +111,8 @@ class TestJobProcessor:
             category_name="Cat",
             qr_content="",
             quantity=5,
+            department_name="",
+            site_short_name="",
         )
 
     @patch("printing.services.job_processor.PrinterService")
@@ -133,4 +135,6 @@ class TestJobProcessor:
             category_name="Cat",
             qr_content="https://beams.example.com/assets/12345678",
             quantity=1,
+            department_name="",
+            site_short_name="",
         )

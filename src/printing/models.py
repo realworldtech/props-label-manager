@@ -15,6 +15,8 @@ class ElementType(models.TextChoices):
     QR_CODE = "qr_code", "QR Code"
     ASSET_NAME = "asset_name", "Asset Name"
     CATEGORY_NAME = "category_name", "Category Name"
+    DEPARTMENT_NAME = "department_name", "Department Name"
+    SITE_SHORT_NAME = "site_short_name", "Site Short Name"
     BARCODE_TEXT = "barcode_text", "Barcode Text"
     LOGO = "logo", "Logo"
     STATIC_TEXT = "static_text", "Static Text"
