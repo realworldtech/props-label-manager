@@ -221,3 +221,35 @@ class TestPrintJob:
         )
         assert job.props_connection == conn
         assert job.quantity == 3
+
+    def test_print_job_with_department_and_site(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-A1B2C3D4",
+            asset_name="Wireless Mic",
+            category_name="Audio",
+            department_name="Technical",
+            site_short_name="HDM",
+        )
+        assert job.department_name == "Technical"
+        assert job.site_short_name == "HDM"
+
+    def test_print_job_department_and_site_default_blank(self):
+        template = LabelTemplate.objects.create(
+            name="Square", width_mm=62, height_mm=62
+        )
+        printer = Printer.objects.create(name="Zebra", ip_address="192.168.1.100")
+        job = PrintJob.objects.create(
+            printer=printer,
+            template=template,
+            barcode="BEAMS-A1B2C3D4",
+            asset_name="Wireless Mic",
+            category_name="Audio",
+        )
+        assert job.department_name == ""
+        assert job.site_short_name == ""

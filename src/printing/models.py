@@ -165,6 +165,8 @@ class PrintJob(models.Model):
     barcode = models.CharField(max_length=100)
     asset_name = models.CharField(max_length=200)
     category_name = models.CharField(max_length=200)
+    department_name = models.CharField(max_length=200, blank=True, default="")
+    site_short_name = models.CharField(max_length=50, blank=True, default="")
     qr_content = models.URLField(
         blank=True,
         null=True,
