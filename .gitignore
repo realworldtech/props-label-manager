@@ -25,3 +25,6 @@ src/data/
 # Coverage
 htmlcov/
 .coverage
+
+# Worktrees
+.worktrees/
