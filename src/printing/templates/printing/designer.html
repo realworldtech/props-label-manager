@@ -749,9 +749,10 @@
     return canvas.getObjects().filter(o => o._isElement);
   }
 
-  // Draw type labels on top of elements after canvas render
+  // Draw type labels on top of elements after canvas render.
+  // Uses getScaledWidth/Height so labels look correct even mid-drag.
   canvas.on('after:render', function() {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.contextTop || canvas.getContext('2d');
     getCanvasElements().forEach(obj => {
       const color = ELEMENT_COLORS[obj._elData.element_type] || ELEMENT_COLORS.static_text;
       const w = obj.getScaledWidth();
@@ -805,25 +806,30 @@
     });
   });
 
-  canvas.on('object:scaling', function(e) {
-    const obj = e.target;
-    if (!obj._isElement) return;
-    // Convert scale transform into actual width/height, snap, and reset scale
-    const newW = snapToGrid(obj.width * obj.scaleX);
-    const newH = snapToGrid(obj.height * obj.scaleY);
-    obj.set({
-      width: Math.max(SCALE, newW),
-      height: Math.max(SCALE, newH),
-      scaleX: 1,
-      scaleY: 1,
-    });
-  });
+  // Do NOT interfere during object:scaling — Fabric needs scaleX/scaleY
+  // intact while dragging handles. We normalise on object:modified instead.
 
   canvas.on('object:modified', function(e) {
     const obj = e.target;
     if (!obj._isElement) return;
+
+    // Normalise: bake scaleX/scaleY into width/height, snap, and reset scale
+    const rawW = obj.width * obj.scaleX;
+    const rawH = obj.height * obj.scaleY;
+    const snappedW = Math.max(SCALE, snapToGrid(rawW));
+    const snappedH = Math.max(SCALE, snapToGrid(rawH));
+
+    obj.set({
+      width: snappedW,
+      height: snappedH,
+      scaleX: 1,
+      scaleY: 1,
+    });
+    obj.setCoords();
+
     syncDataFromCanvas(obj);
     updatePanel(obj);
+    canvas.requestRenderAll();
     saveState();
   });
 
@@ -831,8 +837,8 @@
     const d = obj._elData;
     d.x_mm = round2(obj.left / SCALE);
     d.y_mm = round2(obj.top / SCALE);
-    d.width_mm = round2((obj.width * (obj.scaleX || 1)) / SCALE);
-    d.height_mm = round2((obj.height * (obj.scaleY || 1)) / SCALE);
+    d.width_mm = round2(obj.width / SCALE);
+    d.height_mm = round2(obj.height / SCALE);
     d.rotation = Math.round(obj.angle || 0);
   }
 
