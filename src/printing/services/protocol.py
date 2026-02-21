@@ -10,7 +10,10 @@ class MessageType(Enum):
     AUTH_RESULT = "auth_result"
     PAIRING_APPROVED = "pairing_approved"
     PAIRING_DENIED = "pairing_denied"
+    PAIRING_PENDING = "pairing_pending"
     PRINT = "print"
+    ERROR = "error"
+    FORCE_DISCONNECT = "force_disconnect"
 
 
 class ProtocolError(Exception):

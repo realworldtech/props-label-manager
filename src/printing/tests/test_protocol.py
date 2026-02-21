@@ -147,6 +147,35 @@ class TestParseMessages:
         with pytest.raises(ProtocolError, match="Unknown message type"):
             parse_server_message(json.dumps({"type": "unknown_thing"}))
 
+    def test_parse_pairing_pending(self):
+        raw = json.dumps(
+            {
+                "type": "pairing_pending",
+                "client_id": 42,
+                "message": "Awaiting admin approval.",
+            }
+        )
+        msg = parse_server_message(raw)
+        assert msg.type == MessageType.PAIRING_PENDING
+        assert msg.data["client_id"] == 42
+
+    def test_parse_error_message(self):
+        raw = json.dumps(
+            {
+                "type": "error",
+                "code": "version_mismatch",
+                "message": "Unsupported protocol version",
+            }
+        )
+        msg = parse_server_message(raw)
+        assert msg.type == MessageType.ERROR
+        assert msg.data["code"] == "version_mismatch"
+
+    def test_parse_force_disconnect(self):
+        raw = json.dumps({"type": "force_disconnect"})
+        msg = parse_server_message(raw)
+        assert msg.type == MessageType.FORCE_DISCONNECT
+
     def test_parse_print_missing_required_fields(self):
         raw = json.dumps({"type": "print", "job_id": "123"})
         with pytest.raises(ProtocolError, match="Missing required field"):
