@@ -151,6 +151,34 @@ class TestPropsConnection:
         assert conn.pairing_token == "secret-token-123"
         assert conn.is_paired is True
 
+    def test_server_url_normalizes_bare_hostname(self):
+        conn = PropsConnection(name="Test", server_url="props.example.com")
+        conn.full_clean()
+        assert conn.server_url == "wss://props.example.com/ws/print-service/"
+
+    def test_server_url_normalizes_https_url(self):
+        conn = PropsConnection(name="Test", server_url="https://props.example.com")
+        conn.full_clean()
+        assert conn.server_url == "wss://props.example.com/ws/print-service/"
+
+    def test_server_url_normalizes_http_url(self):
+        conn = PropsConnection(name="Test", server_url="http://localhost:8000")
+        conn.full_clean()
+        assert conn.server_url == "ws://localhost:8000/ws/print-service/"
+
+    def test_server_url_preserves_correct_wss_url(self):
+        conn = PropsConnection(
+            name="Test",
+            server_url="wss://props.example.com/ws/print-service/",
+        )
+        conn.full_clean()
+        assert conn.server_url == "wss://props.example.com/ws/print-service/"
+
+    def test_server_url_normalizes_https_with_trailing_slash(self):
+        conn = PropsConnection(name="Test", server_url="https://props.example.com/")
+        conn.full_clean()
+        assert conn.server_url == "wss://props.example.com/ws/print-service/"
+
     def test_unpaired_connection(self):
         conn = PropsConnection.objects.create(
             name="BeaMS",

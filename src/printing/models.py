@@ -107,8 +107,13 @@ class JobStatus(models.TextChoices):
 
 
 class PropsConnection(models.Model):
+    WS_PATH = "/ws/print-service/"
+
     name = models.CharField(max_length=100)
-    server_url = models.URLField()
+    server_url = models.CharField(
+        max_length=200,
+        help_text="PROPS server hostname or URL (e.g. props.example.com)",
+    )
     pairing_token = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     status = models.CharField(
@@ -126,6 +131,32 @@ class PropsConnection(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        from urllib.parse import urlparse
+
+        url = self.server_url.strip()
+
+        # Already a valid ws/wss URL with the right path
+        if url.startswith(("ws://", "wss://")):
+            if url.endswith(self.WS_PATH):
+                self.server_url = url
+                return
+
+        # Has a scheme — extract host:port
+        if "://" in url:
+            parsed = urlparse(url)
+            scheme = "ws" if parsed.scheme == "http" else "wss"
+            host = parsed.hostname or ""
+            port = f":{parsed.port}" if parsed.port else ""
+        else:
+            # Bare hostname (or hostname:port)
+            scheme = "wss"
+            host = url.split("/")[0].split(":")[0]
+            port_part = url.split("/")[0].split(":")
+            port = f":{port_part[1]}" if len(port_part) > 1 else ""
+
+        self.server_url = f"{scheme}://{host}{port}{self.WS_PATH}"
 
     @property
     def is_paired(self):
