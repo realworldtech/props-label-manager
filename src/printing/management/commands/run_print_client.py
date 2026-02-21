@@ -22,44 +22,63 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         client_name = options["client_name"]
-        connections = PropsConnection.objects.filter(is_active=True)
-
-        if not connections.exists():
-            self.stdout.write(self.style.WARNING("No active connections configured."))
-            self.stdout.write("Add connections via the admin interface at /admin/")
-            return
-
-        for conn in connections:
-            status = "paired" if conn.is_paired else "unpaired"
-            self.stdout.write(f"  - {conn.name} ({status})")
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Starting print client '{client_name}' with "
-                f"{connections.count()} connection(s)..."
+                f"Starting print client '{client_name}' "
+                f"(syncing connections every 10s)..."
             )
         )
 
         asyncio.run(self._run(client_name))
 
     async def _run(self, client_name: str):
-        connections = PropsConnection.objects.filter(is_active=True)
-        tasks = []
+        self._clients = {}  # connection_id -> PropsWebSocketClient
+        self._tasks = {}  # connection_id -> asyncio.Task
+        self._client_name = client_name
 
-        for conn in connections:
+        while True:
+            await self._sync_connections()
+            await asyncio.sleep(10)
+
+    async def _sync_connections(self):
+        desired = await asyncio.to_thread(self._get_desired_connections)
+        desired_ids = set(desired.keys())
+        running_ids = set(self._clients.keys())
+
+        # Start new connections
+        for conn_id in desired_ids - running_ids:
+            conn = desired[conn_id]
             client = PropsWebSocketClient(
-                connection_id=conn.pk,
-                server_url=conn.server_url,
-                client_name=client_name,
-                pairing_token=conn.pairing_token,
+                connection_id=conn_id,
+                server_url=conn["server_url"],
+                client_name=self._client_name,
+                pairing_token=conn["pairing_token"],
                 on_token_received=self._on_token_received,
                 on_status_change=self._on_status_change,
                 on_print_job=self._on_print_job,
             )
-            tasks.append(asyncio.create_task(client.connect()))
+            self._clients[conn_id] = client
+            self._tasks[conn_id] = asyncio.create_task(client.connect())
+            logger.info("Started client for connection %s", conn_id)
 
-        if tasks:
-            await asyncio.gather(*tasks)
+        # Stop removed/deactivated connections
+        for conn_id in running_ids - desired_ids:
+            self._clients[conn_id].stop()
+            del self._clients[conn_id]
+            del self._tasks[conn_id]
+            logger.info("Stopped client for connection %s", conn_id)
+
+    def _get_desired_connections(self):
+        """Synchronous DB read — called via to_thread."""
+        connections = PropsConnection.objects.filter(is_active=True)
+        return {
+            conn.pk: {
+                "server_url": conn.server_url,
+                "pairing_token": conn.pairing_token,
+            }
+            for conn in connections
+        }
 
     async def _on_token_received(self, connection_id: int, token: str):
         conn = await asyncio.to_thread(PropsConnection.objects.get, pk=connection_id)
