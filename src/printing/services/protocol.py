@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
+PROTOCOL_VERSION = "1"
+
 
 class MessageType(Enum):
     AUTH_RESULT = "auth_result"
@@ -36,6 +38,7 @@ def build_authenticate_message(
     return json.dumps(
         {
             "type": "authenticate",
+            "protocol_version": PROTOCOL_VERSION,
             "token": token,
             "client_name": client_name,
             "printers": printers,
@@ -47,6 +50,7 @@ def build_pairing_request_message(client_name: str) -> str:
     return json.dumps(
         {
             "type": "pairing_request",
+            "protocol_version": PROTOCOL_VERSION,
             "client_name": client_name,
         }
     )
