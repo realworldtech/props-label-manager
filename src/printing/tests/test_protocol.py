@@ -8,6 +8,7 @@ from printing.services.protocol import (
     ProtocolError,
     build_authenticate_message,
     build_pairing_request_message,
+    build_print_ack_message,
     build_print_status_message,
     parse_server_message,
 )
@@ -57,6 +58,12 @@ class TestBuildMessages:
         assert parsed["job_id"] == "job-uuid-123"
         assert parsed["status"] == "completed"
         assert parsed["error"] is None
+
+    def test_build_print_ack(self):
+        msg = build_print_ack_message("job-uuid-789")
+        parsed = json.loads(msg)
+        assert parsed["type"] == "print_ack"
+        assert parsed["job_id"] == "job-uuid-789"
 
     def test_build_print_status_failed(self):
         msg = build_print_status_message("job-uuid-123", "failed", "printer offline")

@@ -56,6 +56,15 @@ def build_pairing_request_message(client_name: str) -> str:
     )
 
 
+def build_print_ack_message(job_id: str) -> str:
+    return json.dumps(
+        {
+            "type": "print_ack",
+            "job_id": job_id,
+        }
+    )
+
+
 def build_print_status_message(
     job_id: str, status: str, error: Optional[str] = None
 ) -> str:
