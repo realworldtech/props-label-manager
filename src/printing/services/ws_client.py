@@ -45,6 +45,10 @@ class PropsWebSocketClient:
         return min(2**retry_count, MAX_BACKOFF)
 
     async def _build_printer_info(self) -> list[dict]:
+        return await asyncio.to_thread(self._get_printer_info)
+
+    @staticmethod
+    def _get_printer_info() -> list[dict]:
         printers = Printer.objects.filter(is_active=True).select_related(
             "default_template"
         )
