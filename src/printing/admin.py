@@ -3,6 +3,7 @@ import json
 from django.contrib import admin
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
@@ -50,12 +51,13 @@ class LabelElementInline(StackedInline):
 @admin.register(LabelTemplate)
 class LabelTemplateAdmin(ModelAdmin):
     actions = ["export_templates"]
-    actions_detail = ["export_single_template"]
+    actions_detail = ["export_single_template", "open_designer"]
     list_display = [
         "name",
         "display_dimensions",
         "display_default",
         "display_element_count",
+        "display_designer_link",
     ]
     list_filter = ["is_default"]
     search_fields = ["name"]
@@ -126,6 +128,16 @@ class LabelTemplateAdmin(ModelAdmin):
     @display(description="Elements")
     def display_element_count(self, obj):
         return obj.elements.count()
+
+    @action(description="Open Designer", url_path="designer")
+    def open_designer(self, request, object_id):
+        url = reverse("label-designer", kwargs={"pk": object_id})
+        return redirect(url)
+
+    @display(description="Designer")
+    def display_designer_link(self, obj):
+        url = reverse("label-designer", kwargs={"pk": obj.pk})
+        return format_html('<a href="{}">Design</a>', url)
 
 
 @admin.register(Printer)

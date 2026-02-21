@@ -1,0 +1,1130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Designer — {{ template.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-workspace: #1a1a1e;
+      --bg-panel: #232328;
+      --bg-panel-alt: #2a2a30;
+      --bg-input: #18181c;
+      --border: #3a3a42;
+      --border-focus: #6e8efb;
+      --text-primary: #e8e8ec;
+      --text-secondary: #9898a4;
+      --text-muted: #68687a;
+      --accent: #6e8efb;
+      --accent-hover: #8ba4fc;
+      --accent-dim: rgba(110, 142, 251, 0.12);
+      --danger: #f05e5e;
+      --danger-hover: #f27a7a;
+      --success: #4ecb8d;
+      --canvas-bg: #ffffff;
+      --grid-light: #e8e8ec;
+      --grid-dark: #c8c8d0;
+      --toolbar-h: 52px;
+      --panel-w: 280px;
+      --radius: 6px;
+      --radius-sm: 4px;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-workspace);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Toolbar ──────────────────────────────────── */
+    .toolbar {
+      height: var(--toolbar-h);
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .toolbar-title {
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
+    .toolbar-title span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 6px;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-panel-alt);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--border); }
+    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .btn-accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: transparent;
+      background: transparent;
+    }
+    .btn-danger:hover { background: rgba(240, 94, 94, 0.1); }
+
+    .btn-ghost {
+      border-color: transparent;
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .btn-ghost:hover { background: var(--bg-panel-alt); color: var(--text-primary); }
+
+    /* ── Main Layout ─────────────────────────────── */
+    .layout {
+      display: flex;
+      height: calc(100vh - var(--toolbar-h));
+    }
+
+    /* ── Canvas Area ─────────────────────────────── */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(110,142,251,0.03), transparent 60%),
+        var(--bg-workspace);
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 20px 60px rgba(0,0,0,0.4),
+        0 4px 16px rgba(0,0,0,0.2);
+      border-radius: 2px;
+    }
+
+    .canvas-dimensions {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Properties Panel ────────────────────────── */
+    .panel {
+      width: var(--panel-w);
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .panel-empty {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .panel-empty svg {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
+
+    .panel-section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .field-row:last-child { margin-bottom: 0; }
+
+    .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .field label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 5px 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--mono);
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--border-focus);
+    }
+
+    .field select {
+      font-family: var(--sans);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239898a4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+
+    .field textarea {
+      width: 100%;
+      padding: 5px 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--mono);
+      font-size: 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 48px;
+      transition: border-color 0.15s;
+    }
+    .field textarea:focus { border-color: var(--border-focus); }
+
+    .align-group {
+      display: flex;
+      gap: 2px;
+    }
+    .align-btn {
+      flex: 1;
+      padding: 5px 0;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .align-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .align-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .align-btn:not(:first-child) { border-left: none; }
+    .align-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .align-btn:hover:not(.active) {
+      background: var(--bg-panel-alt);
+      color: var(--text-primary);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .checkbox-row label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .panel-actions {
+      padding: 14px 16px;
+    }
+
+    /* ── Toast Notification ──────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 1000;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast-success {
+      background: var(--success);
+      color: #1a1a1e;
+    }
+    .toast-error {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* ── Scrollbar ────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Add Element Dropdown ────────────────────── */
+    .dropdown-wrap { position: relative; }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 200px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 100;
+      padding: 4px;
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .dropdown-item:hover { background: var(--bg-panel-alt); }
+    .dropdown-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar-title">
+    {{ template.name }} <span>&middot; {{ template.width_mm }}&times;{{ template.height_mm }}mm</span>
+  </div>
+
+  <div class="toolbar-sep"></div>
+
+  <div class="dropdown-wrap">
+    <button class="btn" id="addElementBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Element
+    </button>
+    <div class="dropdown-menu" id="addElementMenu">
+      {% for value, label in element_type_choices %}
+      <div class="dropdown-item" data-type="{{ value }}">
+        <span class="dot" style="background: var(--el-{{ value }})"></span>
+        {{ label }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="toolbar-spacer"></div>
+
+  <button class="btn" id="undoBtn" title="Undo (Ctrl+Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+  </button>
+
+  <button class="btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+  </button>
+
+  <div class="toolbar-sep"></div>
+
+  <button class="btn btn-accent" id="saveBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Save
+  </button>
+
+  <a class="btn" href="{% url 'label-designer-preview' template.pk %}" target="_blank" id="previewBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Preview
+  </a>
+
+  <a class="btn btn-ghost" href="{% url 'admin:printing_labeltemplate_change' template.pk %}">
+    Admin
+  </a>
+</div>
+
+<!-- Main layout -->
+<div class="layout">
+  <!-- Canvas area -->
+  <div class="canvas-area">
+    <div class="canvas-wrapper">
+      <canvas id="labelCanvas"></canvas>
+      <div class="canvas-dimensions" id="canvasDims"></div>
+    </div>
+  </div>
+
+  <!-- Properties panel -->
+  <div class="panel" id="propsPanel">
+    <div class="panel-empty" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9h18M9 21V9"/>
+      </svg>
+      <div>Select an element on the canvas to edit its properties, or add a new one from the toolbar.</div>
+    </div>
+
+    <div id="propsContent" style="display:none">
+      <div class="panel-section">
+        <div class="panel-section-title">Element</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Type</label>
+            <select id="propType">
+              {% for value, label in element_type_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Position &amp; Size</div>
+        <div class="field-row">
+          <div class="field">
+            <label>X (mm)</label>
+            <input type="number" id="propX" step="0.5" min="0">
+          </div>
+          <div class="field">
+            <label>Y (mm)</label>
+            <input type="number" id="propY" step="0.5" min="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Width (mm)</label>
+            <input type="number" id="propW" step="0.5" min="1">
+          </div>
+          <div class="field">
+            <label>Height (mm)</label>
+            <input type="number" id="propH" step="0.5" min="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Rotation (&deg;)</label>
+            <input type="number" id="propRotation" step="1" min="0" max="360">
+          </div>
+          <div class="field">
+            <label>Order</label>
+            <input type="number" id="propSortOrder" step="1" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section" id="textOptionsSection">
+        <div class="panel-section-title">Typography</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Font</label>
+            <select id="propFont">
+              <option value="">—</option>
+              {% for value, label in font_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Size (pt)</label>
+            <input type="number" id="propFontSize" step="0.5" min="1">
+          </div>
+          <div class="field">
+            <label>Max Chars</label>
+            <input type="number" id="propMaxChars" step="1" min="0">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="propBold">
+          <label for="propBold">Bold</label>
+        </div>
+        <div class="field-row" style="margin-top: 8px;">
+          <div class="field">
+            <label>Align</label>
+            <div class="align-group">
+              <button class="align-btn" data-align="left" title="Left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+              </button>
+              <button class="align-btn" data-align="center" title="Centre">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>
+              </button>
+              <button class="align-btn" data-align="right" title="Right">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section" id="staticContentSection">
+        <div class="panel-section-title">Content</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Static Text</label>
+            <textarea id="propStaticContent" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button class="btn btn-danger" id="deleteBtn" style="width:100%;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete Element
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Config ──────────────────────────────────────
+  const SCALE = 10;  // 1mm = 10px
+  const SNAP = 0.5;  // snap to 0.5mm
+  const GRID_MINOR = 1;  // 1mm
+  const GRID_MAJOR = 5;  // 5mm
+
+  const ELEMENT_COLORS = {
+    barcode_128:     { fill: 'rgba(76, 175, 80, 0.15)',  stroke: '#4CAF50', label: 'Barcode 128' },
+    qr_code:         { fill: 'rgba(156, 39, 176, 0.15)', stroke: '#9C27B0', label: 'QR Code' },
+    asset_name:      { fill: 'rgba(33, 150, 243, 0.15)', stroke: '#2196F3', label: 'Asset Name' },
+    category_name:   { fill: 'rgba(0, 188, 212, 0.15)',  stroke: '#00BCD4', label: 'Category' },
+    department_name: { fill: 'rgba(255, 152, 0, 0.15)',  stroke: '#FF9800', label: 'Department' },
+    site_short_name: { fill: 'rgba(121, 85, 72, 0.15)',  stroke: '#795548', label: 'Site' },
+    barcode_text:    { fill: 'rgba(96, 125, 139, 0.15)', stroke: '#607D8B', label: 'Barcode Text' },
+    logo:            { fill: 'rgba(255, 87, 34, 0.15)',  stroke: '#FF5722', label: 'Logo' },
+    static_text:     { fill: 'rgba(63, 81, 181, 0.15)',  stroke: '#3F51B5', label: 'Static Text' },
+  };
+
+  const DEFAULT_SIZES = {
+    barcode_128:     { w: 30, h: 8 },
+    qr_code:         { w: 10, h: 10 },
+    asset_name:      { w: 20, h: 4 },
+    category_name:   { w: 20, h: 4 },
+    department_name: { w: 20, h: 4 },
+    site_short_name: { w: 15, h: 4 },
+    barcode_text:    { w: 20, h: 3 },
+    logo:            { w: 10, h: 10 },
+    static_text:     { w: 15, h: 4 },
+  };
+
+  // ── Data ────────────────────────────────────────
+  const templateData = JSON.parse('{{ template_json|escapejs }}');
+  const templatePk = {{ template.pk }};
+  const canvasW = templateData.template.width_mm * SCALE;
+  const canvasH = templateData.template.height_mm * SCALE;
+
+  // ── Undo/Redo ───────────────────────────────────
+  let undoStack = [];
+  let redoStack = [];
+  let suppressHistory = false;
+
+  function saveState() {
+    if (suppressHistory) return;
+    undoStack.push(serializeElements());
+    redoStack = [];
+    if (undoStack.length > 50) undoStack.shift();
+  }
+
+  function undo() {
+    if (undoStack.length === 0) return;
+    redoStack.push(serializeElements());
+    restoreState(undoStack.pop());
+  }
+
+  function redo() {
+    if (redoStack.length === 0) return;
+    undoStack.push(serializeElements());
+    restoreState(redoStack.pop());
+  }
+
+  function serializeElements() {
+    return JSON.stringify(getCanvasElements().map(obj => obj._elData));
+  }
+
+  function restoreState(json) {
+    suppressHistory = true;
+    const elements = JSON.parse(json);
+    // Remove all element objects
+    getCanvasElements().forEach(obj => canvas.remove(obj));
+    // Re-add
+    elements.forEach(data => addElementToCanvas(data));
+    canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    updatePanel(null);
+    suppressHistory = false;
+  }
+
+  // ── Canvas Setup ────────────────────────────────
+  const canvas = new fabric.Canvas('labelCanvas', {
+    width: canvasW,
+    height: canvasH,
+    backgroundColor: templateData.template.background_color || '#ffffff',
+    selection: true,
+    preserveObjectStacking: true,
+  });
+
+  document.getElementById('canvasDims').textContent =
+    templateData.template.width_mm + ' × ' + templateData.template.height_mm + ' mm';
+
+  // Draw grid
+  function drawGrid() {
+    const widthMm = templateData.template.width_mm;
+    const heightMm = templateData.template.height_mm;
+    const lines = [];
+
+    for (let x = 0; x <= widthMm; x += GRID_MINOR) {
+      const isMajor = x % GRID_MAJOR === 0;
+      lines.push(new fabric.Line(
+        [x * SCALE, 0, x * SCALE, canvasH],
+        { stroke: isMajor ? '#c8c8d0' : '#e4e4ea', strokeWidth: isMajor ? 0.5 : 0.25, selectable: false, evented: false }
+      ));
+    }
+    for (let y = 0; y <= heightMm; y += GRID_MINOR) {
+      const isMajor = y % GRID_MAJOR === 0;
+      lines.push(new fabric.Line(
+        [0, y * SCALE, canvasW, y * SCALE],
+        { stroke: isMajor ? '#c8c8d0' : '#e4e4ea', strokeWidth: isMajor ? 0.5 : 0.25, selectable: false, evented: false }
+      ));
+    }
+
+    const grid = new fabric.Group(lines, {
+      selectable: false,
+      evented: false,
+      _isGrid: true,
+    });
+    canvas.add(grid);
+    canvas.sendToBack(grid);
+  }
+
+  drawGrid();
+
+  // ── Element Factory ─────────────────────────────
+  function createElementGroup(data) {
+    const color = ELEMENT_COLORS[data.element_type] || ELEMENT_COLORS.static_text;
+    const w = data.width_mm * SCALE;
+    const h = data.height_mm * SCALE;
+
+    const rect = new fabric.Rect({
+      width: w,
+      height: h,
+      fill: color.fill,
+      stroke: color.stroke,
+      strokeWidth: 1.5,
+      rx: 2,
+      ry: 2,
+      originX: 'left',
+      originY: 'top',
+    });
+
+    const fontSize = Math.min(11, Math.max(8, h * 0.4));
+    const label = new fabric.Text(color.label, {
+      fontSize: fontSize,
+      fontFamily: 'DM Sans, sans-serif',
+      fill: color.stroke,
+      originX: 'center',
+      originY: 'center',
+      left: w / 2,
+      top: h / 2,
+      selectable: false,
+      evented: false,
+    });
+
+    // Clip label if wider than rect
+    if (label.width > w - 6) {
+      label.set({ fontSize: Math.max(7, fontSize - 2) });
+    }
+
+    const group = new fabric.Group([rect, label], {
+      left: data.x_mm * SCALE,
+      top: data.y_mm * SCALE,
+      angle: data.rotation || 0,
+      hasControls: true,
+      hasBorders: true,
+      cornerColor: color.stroke,
+      cornerStrokeColor: '#fff',
+      cornerSize: 8,
+      cornerStyle: 'circle',
+      transparentCorners: false,
+      borderColor: color.stroke,
+      borderScaleFactor: 1.5,
+      _isElement: true,
+    });
+
+    group._elData = { ...data };
+    return group;
+  }
+
+  function addElementToCanvas(data) {
+    const group = createElementGroup(data);
+    canvas.add(group);
+    return group;
+  }
+
+  function getCanvasElements() {
+    return canvas.getObjects().filter(o => o._isElement);
+  }
+
+  // ── Load Existing Elements ──────────────────────
+  templateData.elements.forEach(el => addElementToCanvas(el));
+
+  // Save initial state for undo
+  undoStack = [];
+  redoStack = [];
+
+  // ── Snapping ────────────────────────────────────
+  function snapToGrid(val) {
+    const mmVal = val / SCALE;
+    const snapped = Math.round(mmVal / SNAP) * SNAP;
+    return snapped * SCALE;
+  }
+
+  canvas.on('object:moving', function(e) {
+    const obj = e.target;
+    if (!obj._isElement) return;
+    obj.set({
+      left: snapToGrid(obj.left),
+      top: snapToGrid(obj.top),
+    });
+  });
+
+  canvas.on('object:scaling', function(e) {
+    const obj = e.target;
+    if (!obj._isElement) return;
+    const w = obj.width * obj.scaleX;
+    const h = obj.height * obj.scaleY;
+    obj.set({
+      width: snapToGrid(w),
+      height: snapToGrid(h),
+      scaleX: 1,
+      scaleY: 1,
+    });
+    // Rebuild group visuals
+    rebuildElement(obj);
+  });
+
+  canvas.on('object:modified', function(e) {
+    const obj = e.target;
+    if (!obj._isElement) return;
+    syncDataFromCanvas(obj);
+    updatePanel(obj);
+    saveState();
+  });
+
+  function syncDataFromCanvas(obj) {
+    const d = obj._elData;
+    d.x_mm = round2(obj.left / SCALE);
+    d.y_mm = round2(obj.top / SCALE);
+    d.width_mm = round2(obj.getScaledWidth() / SCALE);
+    d.height_mm = round2(obj.getScaledHeight() / SCALE);
+    d.rotation = Math.round(obj.angle || 0);
+  }
+
+  function rebuildElement(obj) {
+    const data = obj._elData;
+    syncDataFromCanvas(obj);
+    const color = ELEMENT_COLORS[data.element_type] || ELEMENT_COLORS.static_text;
+    const w = obj.width;
+    const h = obj.height;
+
+    const items = obj.getObjects();
+    const rect = items[0];
+    const label = items[1];
+
+    rect.set({ width: w, height: h, fill: color.fill, stroke: color.stroke });
+    const fontSize = Math.min(11, Math.max(8, h * 0.4));
+    label.set({
+      text: color.label,
+      fill: color.stroke,
+      fontSize: fontSize,
+      left: w / 2,
+      top: h / 2,
+    });
+  }
+
+  // ── Panel ───────────────────────────────────────
+  const propsContent = document.getElementById('propsContent');
+  const emptyState = document.getElementById('emptyState');
+
+  const propType = document.getElementById('propType');
+  const propX = document.getElementById('propX');
+  const propY = document.getElementById('propY');
+  const propW = document.getElementById('propW');
+  const propH = document.getElementById('propH');
+  const propRotation = document.getElementById('propRotation');
+  const propSortOrder = document.getElementById('propSortOrder');
+  const propFont = document.getElementById('propFont');
+  const propFontSize = document.getElementById('propFontSize');
+  const propBold = document.getElementById('propBold');
+  const propMaxChars = document.getElementById('propMaxChars');
+  const propStaticContent = document.getElementById('propStaticContent');
+  const textOptionsSection = document.getElementById('textOptionsSection');
+  const staticContentSection = document.getElementById('staticContentSection');
+  const alignBtns = document.querySelectorAll('.align-btn');
+
+  const TEXT_TYPES = ['asset_name', 'category_name', 'department_name', 'site_short_name', 'barcode_text', 'static_text'];
+
+  function updatePanel(obj) {
+    if (!obj || !obj._isElement) {
+      propsContent.style.display = 'none';
+      emptyState.style.display = '';
+      return;
+    }
+    propsContent.style.display = '';
+    emptyState.style.display = 'none';
+
+    const d = obj._elData;
+    propType.value = d.element_type;
+    propX.value = d.x_mm;
+    propY.value = d.y_mm;
+    propW.value = d.width_mm;
+    propH.value = d.height_mm;
+    propRotation.value = d.rotation || 0;
+    propSortOrder.value = d.sort_order || 0;
+    propFont.value = d.font_name || '';
+    propFontSize.value = d.font_size_pt || '';
+    propBold.checked = d.font_bold || false;
+    propMaxChars.value = d.max_chars || '';
+    propStaticContent.value = d.static_content || '';
+
+    alignBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.align === (d.text_align || 'left'));
+    });
+
+    const isText = TEXT_TYPES.includes(d.element_type);
+    textOptionsSection.style.display = isText ? '' : 'none';
+    staticContentSection.style.display = d.element_type === 'static_text' ? '' : 'none';
+  }
+
+  canvas.on('selection:created', e => updatePanel(e.selected[0]));
+  canvas.on('selection:updated', e => updatePanel(e.selected[0]));
+  canvas.on('selection:cleared', () => updatePanel(null));
+
+  // Panel → Canvas sync
+  function getActiveElement() {
+    const obj = canvas.getActiveObject();
+    return (obj && obj._isElement) ? obj : null;
+  }
+
+  function onPanelChange() {
+    const obj = getActiveElement();
+    if (!obj) return;
+    const d = obj._elData;
+
+    d.element_type = propType.value;
+    d.x_mm = parseFloat(propX.value) || 0;
+    d.y_mm = parseFloat(propY.value) || 0;
+    d.width_mm = parseFloat(propW.value) || 1;
+    d.height_mm = parseFloat(propH.value) || 1;
+    d.rotation = parseInt(propRotation.value) || 0;
+    d.sort_order = parseInt(propSortOrder.value) || 0;
+    d.font_name = propFont.value || null;
+    d.font_size_pt = parseFloat(propFontSize.value) || null;
+    d.font_bold = propBold.checked;
+    d.max_chars = parseInt(propMaxChars.value) || null;
+    d.static_content = propStaticContent.value || null;
+
+    // Update canvas object
+    obj.set({
+      left: d.x_mm * SCALE,
+      top: d.y_mm * SCALE,
+      angle: d.rotation,
+    });
+    // Resize via group dimensions
+    const newW = d.width_mm * SCALE;
+    const newH = d.height_mm * SCALE;
+    obj.set({ width: newW, height: newH, scaleX: 1, scaleY: 1 });
+    rebuildElement(obj);
+    canvas.requestRenderAll();
+
+    // Show/hide sections
+    const isText = TEXT_TYPES.includes(d.element_type);
+    textOptionsSection.style.display = isText ? '' : 'none';
+    staticContentSection.style.display = d.element_type === 'static_text' ? '' : 'none';
+
+    saveState();
+  }
+
+  [propType, propX, propY, propW, propH, propRotation, propSortOrder,
+   propFont, propFontSize, propMaxChars].forEach(el => {
+    el.addEventListener('change', onPanelChange);
+  });
+  propBold.addEventListener('change', onPanelChange);
+  propStaticContent.addEventListener('input', onPanelChange);
+
+  alignBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const obj = getActiveElement();
+      if (!obj) return;
+      obj._elData.text_align = btn.dataset.align;
+      alignBtns.forEach(b => b.classList.toggle('active', b === btn));
+      saveState();
+    });
+  });
+
+  // ── Add Element ─────────────────────────────────
+  const addElementBtn = document.getElementById('addElementBtn');
+  const addElementMenu = document.getElementById('addElementMenu');
+
+  addElementBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    addElementMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', () => {
+    addElementMenu.classList.remove('open');
+  });
+
+  document.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const type = item.dataset.type;
+      const defaults = DEFAULT_SIZES[type] || { w: 15, h: 5 };
+      saveState();
+      const data = {
+        element_type: type,
+        x_mm: 2,
+        y_mm: 2,
+        width_mm: defaults.w,
+        height_mm: defaults.h,
+        rotation: 0,
+        font_name: null,
+        font_size_pt: type === 'static_text' ? 10 : null,
+        font_bold: false,
+        text_align: 'left',
+        max_chars: null,
+        static_content: null,
+        sort_order: getCanvasElements().length,
+      };
+      const obj = addElementToCanvas(data);
+      canvas.setActiveObject(obj);
+      updatePanel(obj);
+      addElementMenu.classList.remove('open');
+    });
+  });
+
+  // ── Delete ──────────────────────────────────────
+  document.getElementById('deleteBtn').addEventListener('click', () => {
+    const obj = getActiveElement();
+    if (!obj) return;
+    saveState();
+    canvas.remove(obj);
+    canvas.discardActiveObject();
+    updatePanel(null);
+  });
+
+  // Keyboard delete
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      const obj = getActiveElement();
+      if (obj) {
+        e.preventDefault();
+        saveState();
+        canvas.remove(obj);
+        canvas.discardActiveObject();
+        updatePanel(null);
+      }
+    }
+    // Undo/Redo
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+    }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      redo();
+    }
+  });
+
+  // ── Save ────────────────────────────────────────
+  document.getElementById('saveBtn').addEventListener('click', save);
+
+  // Ctrl+S
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      save();
+    }
+  });
+
+  function save() {
+    const elements = getCanvasElements().map(obj => {
+      syncDataFromCanvas(obj);
+      return { ...obj._elData };
+    });
+
+    const payload = {
+      template: {
+        name: templateData.template.name,
+        width_mm: templateData.template.width_mm,
+        height_mm: templateData.template.height_mm,
+        background_color: templateData.template.background_color,
+      },
+      elements: elements,
+    };
+
+    fetch(`/designer/${templatePk}/save/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        showToast('Saved', 'success');
+      } else {
+        showToast('Error: ' + (data.error || 'Unknown'), 'error');
+      }
+    })
+    .catch(() => showToast('Network error', 'error'));
+  }
+
+  // ── Undo/Redo buttons ──────────────────────────
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('redoBtn').addEventListener('click', redo);
+
+  // ── Helpers ─────────────────────────────────────
+  function round2(v) {
+    return Math.round(v * 100) / 100;
+  }
+
+  function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+      c = c.trim();
+      if (c.startsWith(name + '=')) return decodeURIComponent(c.substring(name.length + 1));
+    }
+    return '';
+  }
+
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast toast-' + type + ' visible';
+    setTimeout(() => toast.classList.remove('visible'), 2500);
+  }
+
+})();
+</script>
+
+<!-- Inject element type CSS vars for dropdown dots -->
+<style>
+  :root {
+    --el-barcode_128: #4CAF50;
+    --el-qr_code: #9C27B0;
+    --el-asset_name: #2196F3;
+    --el-category_name: #00BCD4;
+    --el-department_name: #FF9800;
+    --el-site_short_name: #795548;
+    --el-barcode_text: #607D8B;
+    --el-logo: #FF5722;
+    --el-static_text: #3F51B5;
+  }
+</style>
+
+</body>
+</html>
