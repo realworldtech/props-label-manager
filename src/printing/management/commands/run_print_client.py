@@ -99,6 +99,8 @@ class Command(BaseCommand):
                 category_name=data["category_name"],
                 qr_content=data.get("qr_content", ""),
                 quantity=data.get("quantity", 1),
+                department_name=data.get("department_name", ""),
+                site_short_name=data.get("site_short_name", ""),
             )
             process_print_job(job)
 
