@@ -87,8 +87,15 @@ class PropsWebSocketClient:
             if not self._running:
                 break
 
-            if self.on_status_change:
-                await self.on_status_change(self.connection_id, "disconnected")
+            try:
+                if self.on_status_change:
+                    await self.on_status_change(self.connection_id, "disconnected")
+            except Exception as e:
+                logger.error(
+                    "Connection %s status callback error: %s",
+                    self.connection_id,
+                    e,
+                )
 
             delay = self._get_backoff_delay(self._retry_count)
             self._retry_count += 1

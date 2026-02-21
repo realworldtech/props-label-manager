@@ -31,6 +31,13 @@ def _make_ws_mock():
     return mock
 
 
+def _make_live_task():
+    """Create a mock task that reports as still running."""
+    task = MagicMock()
+    task.done.return_value = False
+    return task
+
+
 @pytest.mark.django_db(transaction=True)
 class TestSyncConnections:
     def _make_command(self):
@@ -78,7 +85,7 @@ class TestSyncConnections:
 
         mock_client = MagicMock()
         cmd._clients[conn.pk] = mock_client
-        cmd._tasks[conn.pk] = MagicMock()
+        cmd._tasks[conn.pk] = _make_live_task()
 
         # Deactivate the connection
         conn.is_active = False
@@ -107,7 +114,7 @@ class TestSyncConnections:
 
         mock_client = MagicMock()
         cmd._clients[conn.pk] = mock_client
-        cmd._tasks[conn.pk] = MagicMock()
+        cmd._tasks[conn.pk] = _make_live_task()
 
         with patch(
             "printing.management.commands.run_print_client.PropsWebSocketClient",
@@ -133,7 +140,7 @@ class TestSyncConnections:
 
         mock_client_a = MagicMock()
         cmd._clients[conn_a.pk] = mock_client_a
-        cmd._tasks[conn_a.pk] = MagicMock()
+        cmd._tasks[conn_a.pk] = _make_live_task()
 
         # Add a second connection
         conn_b = await asyncio.to_thread(
@@ -156,6 +163,36 @@ class TestSyncConnections:
             mock_client_a.stop.assert_not_called()
             MockClient.assert_called_once()
             assert MockClient.call_args[1]["connection_id"] == conn_b.pk
+
+    @pytest.mark.asyncio
+    async def test_restarts_crashed_client(self):
+        conn = await asyncio.to_thread(
+            PropsConnection.objects.create,
+            name="Server F",
+            server_url="wss://server-f.example.com/ws/",
+            pairing_token="token-f",
+            is_active=True,
+        )
+        cmd = self._make_command()
+
+        # Simulate a crashed task
+        dead_task = MagicMock()
+        dead_task.done.return_value = True
+        dead_task.exception.return_value = RuntimeError("connection died")
+        cmd._clients[conn.pk] = MagicMock()
+        cmd._tasks[conn.pk] = dead_task
+
+        with patch(
+            "printing.management.commands.run_print_client.PropsWebSocketClient",
+            new_callable=_make_ws_mock,
+        ) as MockClient:
+            await cmd._sync_connections()
+
+            # Dead client removed and restarted
+            MockClient.assert_called_once()
+            assert MockClient.call_args[1]["connection_id"] == conn.pk
+            assert conn.pk in cmd._clients
+            assert conn.pk in cmd._tasks
 
     def test_get_desired_connections_returns_active_only(self):
         active = PropsConnection.objects.create(

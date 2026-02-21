@@ -42,11 +42,26 @@ class Command(BaseCommand):
             await asyncio.sleep(10)
 
     async def _sync_connections(self):
+        # Remove dead tasks (crashed or unexpectedly finished)
+        dead_ids = [conn_id for conn_id, task in self._tasks.items() if task.done()]
+        for conn_id in dead_ids:
+            task = self._tasks[conn_id]
+            if task.exception():
+                logger.error(
+                    "Client for connection %s crashed: %s",
+                    conn_id,
+                    task.exception(),
+                )
+            else:
+                logger.warning("Client for connection %s stopped unexpectedly", conn_id)
+            del self._clients[conn_id]
+            del self._tasks[conn_id]
+
         desired = await asyncio.to_thread(self._get_desired_connections)
         desired_ids = set(desired.keys())
         running_ids = set(self._clients.keys())
 
-        # Start new connections
+        # Start new connections (or restart dead ones)
         for conn_id in desired_ids - running_ids:
             conn = desired[conn_id]
             client = PropsWebSocketClient(
