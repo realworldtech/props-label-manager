@@ -1,8 +1,12 @@
+import json
+
 from django.contrib import admin
+from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
-from unfold.decorators import display
+from unfold.decorators import action, display
 
 from printing.models import (
     LabelElement,
@@ -45,6 +49,8 @@ class LabelElementInline(StackedInline):
 
 @admin.register(LabelTemplate)
 class LabelTemplateAdmin(ModelAdmin):
+    actions = ["export_templates"]
+    actions_detail = ["export_single_template"]
     list_display = [
         "name",
         "display_dimensions",
@@ -69,6 +75,45 @@ class LabelTemplateAdmin(ModelAdmin):
             },
         ),
     )
+
+    @admin.action(description="Export selected templates as JSON")
+    def export_templates(self, request, queryset):
+        from printing.services.template_io import export_template
+
+        if queryset.count() == 1:
+            template = queryset.first()
+            data = export_template(template)
+            response = HttpResponse(
+                json.dumps(data, indent=2),
+                content_type="application/json",
+            )
+            slug = template.name.lower().replace(" ", "_")
+            response["Content-Disposition"] = (
+                f'attachment; filename="{slug}.label.json"'
+            )
+            return response
+
+        templates = [export_template(t) for t in queryset]
+        response = HttpResponse(
+            json.dumps(templates, indent=2),
+            content_type="application/json",
+        )
+        response["Content-Disposition"] = 'attachment; filename="label_templates.json"'
+        return response
+
+    @action(description="Export as JSON", url_path="export-json")
+    def export_single_template(self, request, object_id):
+        from printing.services.template_io import export_template
+
+        template = self.get_object(request, object_id)
+        data = export_template(template)
+        response = HttpResponse(
+            json.dumps(data, indent=2),
+            content_type="application/json",
+        )
+        slug = template.name.lower().replace(" ", "_")
+        response["Content-Disposition"] = f'attachment; filename="{slug}.label.json"'
+        return response
 
     @display(description="Dimensions")
     def display_dimensions(self, obj):
